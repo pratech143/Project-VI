@@ -8,6 +8,8 @@ import { Elections } from './pages/Elections';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AuthPage } from './pages/AuthPage';
 import OTP from './pages/OTP';
+import { CreateElection } from './pages/CreateElection';
+import { ElectionResults } from './pages/electionResults';
 
 // Wrapper component for public routes
 function PublicRoute({ children }) {
@@ -22,6 +24,8 @@ function App() {
             <Route path="/auth/login" element={<AuthPage type="login" />} />
             <Route path="/auth/register" element={<AuthPage type="register" />} />
             <Route path="/" element={<Home />} />
+            <Route path="/results" element={<ElectionResults/>} />
+            <Route path="/createelection" element={<CreateElection />} />
             <Route path="/OTP" element={<OTP />} />
             <Route path="/register" element={<Register />}/>
             <Route  path="/dashboard"  element={<Dashboard />}/>

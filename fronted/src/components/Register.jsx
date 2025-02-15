@@ -19,6 +19,7 @@ export function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isLoading, errorMessage } = useSelector((state) => state.auth);
+  console.log(isLoading)
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -126,11 +127,11 @@ export function Register() {
             className="w-[30%] text-2xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
-            {isLoading ? (
-              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+            { isLoading && (
+              <span >
                 <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               </span>
-            ) : null}
+            ) }
             Register
           </Button>
         </form>

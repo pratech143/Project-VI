@@ -38,45 +38,44 @@ export function Login() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateInputs()) return;
-
-    setLoading(true); // Set loading state before the API call
+    e.preventDefault(); 
+    if (!validateInputs()) return; 
+    setLoading(true); 
     try {
-      // Dispatch login action with email and password
-      const response = await dispatch(fetchLogin({ email, password }));
-
-      // If login is successful, navigate to the dashboard
-      if (response.payload && response.payload.success) {
-        toast.success("Successfully logged in!");
-        navigate("/dashboard");
-      } else {
-        // Handle unsuccessful login (if API returns some error in response)
-        toast.error("Login failed. Please try again.");
-      }
+    const data=  await dispatch(fetchLogin({ email, password })).unwrap();
+    console.log(data)
+      toast.success('Login Successful');
+    
+      localStorage.setItem("email",data.email)
+        localStorage.setItem("role",data.role)
+      
+        setTimeout(()=>{
+          navigate('/dashboard');
+        }
+        ,1000)
+      
     } catch (error) {
-      // If the login fails, show an error message
-      const errorMessage = error.message || "Failed to log in";
-      setErrors((prev) => ({ ...prev, general: errorMessage }));
-      toast.error(errorMessage);
+      toast.error(error);
+      setErrors((prev) => ({ ...prev, general: error.message || 'Login failed' }));
     } finally {
-      setLoading(false); // Stop loading state after the request finishes
+      setLoading(false); // Stop loading when the request is finished
     }
   };
+  
 
   return (
     <div className="flex items-center justify-center bg-slate-blue text-white">
       <Card className="w-full mx-11 shadow-lg border-none bg-slate-blue text-white">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold text-gray-800">
+          <CardTitle className="text-2xl font-semibold text-white">
             Welcome back
           </CardTitle>
-          <CardDescription className="text-gray-600">Login to vote</CardDescription>
+          <CardDescription className="text-white">Login to vote</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xl font-medium text-gray-700">
+              <Label htmlFor="email" className="text-xl font-medium text-white">
                 Email address
               </Label>
               <div className="relative">
@@ -95,7 +94,7 @@ export function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xl font-medium text-gray-700">
+              <Label htmlFor="password" className="text-xl font-medium text-white">
                 Password
               </Label>
               <div className="relative">
