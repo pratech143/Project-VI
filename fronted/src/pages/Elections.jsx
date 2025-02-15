@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { useAuth } from '../contexts/AuthContext';
 
 const mockElections = [
   {
@@ -45,7 +44,7 @@ export function Elections() {
   const [elections] = useState(mockElections);
   const [loading] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState({});
-  const { user } = useAuth();
+  const user=true
 
   const handleVote = async (electionId, candidateId) => {
     try {

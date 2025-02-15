@@ -1,7 +1,7 @@
-import { useAuth } from '../contexts/AuthContext';
+
 
 export function Dashboard() {
-  const { user } = useAuth();
+  const user={email:"prtkchapagain"}
 
   return (
     <div className="bg-white shadow rounded-lg p-6">

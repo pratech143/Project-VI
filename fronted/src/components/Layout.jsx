@@ -1,15 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Vote, LogOut, User } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 
 export function Layout({ children }) {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const user=false
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/login');
+      navigate('/auth/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -25,8 +24,7 @@ export function Layout({ children }) {
                 to="/"
                 className="flex items-center px-2 py-2 text-white hover:text-gray-600"
               >
-                <Vote className="text-3xl h-auto w-auto mr-2" />
-                <span className="font-semibold text-3xl">Secure Voting System</span>
+                <img className="mr-3 w-48" src="/logo.png" alt="E-mat" />
               </Link>
             </div>
 
