@@ -1,0 +1,9 @@
+to include: 
+include '../config/database.php';
+include '../config/mail_config.php';
+include '../config/handle_cors.php';
+
+for errors:
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
