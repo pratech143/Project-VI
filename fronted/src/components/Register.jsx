@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
-import { KeyRound, Mail, User,} from 'lucide-react';
+import { KeyRound, Mail, User, } from 'lucide-react';
 import { Card, CardDescription, CardTitle, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,10 +11,9 @@ export function Register() {
     email: '',
     password: '',
     voterId: '',
-  
+
   });
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -27,9 +25,8 @@ export function Register() {
     e.preventDefault();
     try {
       setLoading(true);
-      await signUp(formData.email, formData.password);
       toast.success('Registration successful! Please check your email to verify your account.');
-      navigate('/login');
+      navigate('/otp');
     } catch (error) {
       toast.error(error.message || 'Failed to register');
     } finally {
@@ -46,7 +43,20 @@ export function Register() {
         </CardHeader>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-3">
-
+            {/* Voter ID */}
+            <div className="relative">
+              <label htmlFor="voterId" className="text-xl text-white">Voter ID</label>
+              <Input
+                id="voterId"
+                name="voterId"
+                type="text"
+                value={formData.voterId}
+                onChange={handleChange}
+                required
+                className="pl-10 min-h-9 border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 w-[70%]"
+              />
+              <User className="absolute left-3 top-[70%] transform -translate-y-1/2 text-gray-400" />
+            </div>
 
             {/* Email */}
             <div className="relative">
@@ -78,20 +88,7 @@ export function Register() {
               <KeyRound className="absolute left-3 top-[70%] transform -translate-y-1/2 text-gray-400" />
             </div>
 
-            {/* Voter ID */}
-            <div className="relative">
-              <label htmlFor="voterId" className="text-xl text-white">Voter ID</label>
-              <Input
-                id="voterId"
-                name="voterId"
-                type="text"
-                value={formData.voterId}
-                onChange={handleChange}
-                required
-                className="pl-10 min-h-9 border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 w-[70%]"
-              />
-              <User className="absolute left-3 top-[70%] transform -translate-y-1/2 text-gray-400" />
-            </div>
+
           </div>
 
           <Button
