@@ -1,49 +1,97 @@
-import { createSlice,createAsyncThunk, isFulfilled } from "@reduxjs/toolkit";
-export const fetchLogin = createAsyncThunk('fetchLogin', async ({ email, password }) => {
-    const response = await fetch("https://jsonplaceholder.typicode.com/todos", {
-      method: "POST",  
-      headers: {
-        "Content-Type": "application/json", 
-      },
-      body: JSON.stringify({ email, password })
-    });
-  
-    if (!response.ok) {
-      throw new Error("Login failed!");
-    }
-    console.log(email);
-    console.log(password);
-    return response.json();
-  });
-  
-const authSlice=createSlice({
-    name:"auth",
-    initialState:{
-        data:null,
-        email:"",
-        password:"",
-        isLoading:false,
-        isError:false,
-        
-    },
-    extraReducers(builder){
-        builder.addCase(fetchLogin.pending,(state,action)=>{
-            state.isLoading=true
-        })
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import baseApi from "../../api/baseApi"; // Assuming you are importing baseApi
 
-        builder.addCase(fetchLogin.fulfilled,(state,action)=>{
-            state.isLoading=false;
-            state.email=action.payload.email;
-            state.password=action.payload.password;
-            state.data=action.payload
-        })
-        
-        builder.addCase(fetchLogin.rejected,(state,action)=>{
-            state.isLoading=false;
-            console.log("Error:",action.payload)
-            state.isError=true 
-        })
+// Login action
+export const fetchLogin = createAsyncThunk(
+  "auth/fetchLogin",
+  async ({ email, password }, { rejectWithValue }) => {
+    try {
+      const response = await baseApi("public/login.php", {
+        method: "POST",
+        body: { email, password },
+      });
+
+      const data = response;
+      console.log(response)
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed!");
+      }
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
     }
-    
+  }
+);
+
+// Register action
+export const fetchRegister = createAsyncThunk(
+  "auth/fetchRegister",
+  async ({email,password,voter_id}, { rejectWithValue }) => {
+    try {
+      const response = await baseApi.post("public/register.php", {email,password,voter_id});
+
+      const data =  response.data;
+      console.log(data)
+
+      if (data.success===false) {
+        throw new Error(data.message || "Registration failed!");
+        
+      }
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState: {
+    data: null,
+    email: "",
+    password: "",
+    isLoading: false,
+    isError: false,
+    errorMessage: "",
+  },
+  extraReducers: (builder) => {
+    builder
+      // Login cases
+      .addCase(fetchLogin.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+        state.errorMessage = "";
+      })
+      .addCase(fetchLogin.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.data = action.payload;
+        state.email = action.payload.email;
+      })
+      .addCase(fetchLogin.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.errorMessage = action.payload;
+      })
+      
+      // Register cases
+      .addCase(fetchRegister.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+        state.errorMessage = "";
+      })
+      .addCase(fetchRegister.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.data = action.payload;
+      })
+      .addCase(fetchRegister.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.errorMessage = action.payload;
+      });
+  },
 });
+
 export default authSlice.reducer;

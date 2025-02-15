@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchLogin } from "@/Redux/slice/authSlice";
+import { fetchLogin } from "@/Redux/slice/authSlice";  // Importing fetchLogin action
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -16,7 +16,7 @@ export function Login() {
   const [errors, setErrors] = useState({ email: "", password: "", general: "" });
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const data = useSelector((state) => state.auth);
+  const { isLoading, isError } = useSelector((state) => state.auth);  // Accessing the loading state and error state from Redux
 
   const validateInputs = () => {
     const newErrors = {};
@@ -44,11 +44,16 @@ export function Login() {
     setLoading(true); // Set loading state before the API call
     try {
       // Dispatch login action with email and password
-      await dispatch(fetchLogin({ email, password }));
-      
-      // After successful login, navigate to the dashboard
-      toast.success("Successfully logged in!");
-      navigate("/dashboard");
+      const response = await dispatch(fetchLogin({ email, password }));
+
+      // If login is successful, navigate to the dashboard
+      if (response.payload && response.payload.success) {
+        toast.success("Successfully logged in!");
+        navigate("/dashboard");
+      } else {
+        // Handle unsuccessful login (if API returns some error in response)
+        toast.error("Login failed. Please try again.");
+      }
     } catch (error) {
       // If the login fails, show an error message
       const errorMessage = error.message || "Failed to log in";
@@ -119,9 +124,9 @@ export function Login() {
             <Button
               type="submit"
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-md"
-              disabled={loading}
+              disabled={isLoading}
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
         </CardContent>
