@@ -5,6 +5,7 @@ include '../config/mail_config.php';
 
 header('Content-Type: application/json');
 
+// Check if the request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
