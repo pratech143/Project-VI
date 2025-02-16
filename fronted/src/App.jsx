@@ -3,18 +3,13 @@ import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Register } from './components/Register';
-import { Dashboard } from './pages/Dashboard';
+import  UserDashboard  from './pages/Dashboard';
 import { Elections } from './pages/Elections';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AuthPage } from './pages/AuthPage';
 import OTP from './pages/OTP';
 import { CreateElection } from './pages/CreateElection';
 import { ElectionResults } from './pages/electionResults';
-
-// Wrapper component for public routes
-function PublicRoute({ children }) {
-  return user ? <Navigate to="/" /> : children;
-}
 
 function App() {
   return (
@@ -28,7 +23,7 @@ function App() {
             <Route path="/createelection" element={<CreateElection />} />
             <Route path="/OTP" element={<OTP />} />
             <Route path="/register" element={<Register />}/>
-            <Route  path="/dashboard"  element={<Dashboard />}/>
+            <Route  path="/dashboard"  element={<UserDashboard />}/>
             <Route  path="/elections" element={  <Elections />  }  />
             <Route path="/admin"  element={<AdminDashboard />}/>
           </Routes>

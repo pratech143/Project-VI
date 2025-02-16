@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+// import { zodResolver } from '@hookform/resolvers/zod';
+// import { z } from 'zod';
 import { format } from 'date-fns';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { motion, AnimatePresence } from 'framer-motion';
+
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '../components/ui/dialog';
 
 // Mock data for elections
 const mockElections = [
@@ -27,16 +31,30 @@ const mockElections = [
     ward_id: 'WARD001',
     start_date: '2024-11-03',
     end_date: '2024-11-03',
-    end_time: '18:00', // New time field
     status: 'upcoming'
   }
 ];
 
+// const formSchema = z.object({
+//   name: z.string().min(3, 'Election name must be at least 3 characters'),
+//   description: z.string().min(10, 'Description must be at least 10 characters'),
+//   location_id: z.string().min(1, 'Location ID is required'),
+//   district_id: z.string().min(1, 'District ID is required'),
+//   ward_id: z.string().min(1, 'Ward ID is required'),
+//   start_date: z.string().min(1, 'Start date is required'),
+//   end_date: z.string().min(1, 'End date is required')
+// });
+
 export function CreateElection() {
   const [elections, setElections] = useState(mockElections);
   const [open, setOpen] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [electionData, setElectionData] = useState(null);
 
   const form = useForm({
+    // resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       description: '',
@@ -44,52 +62,42 @@ export function CreateElection() {
       district_id: '',
       ward_id: '',
       start_date: '',
-      end_date: '',
-      end_time: '', // New time field
+      end_date: ''
     }
   });
 
-  // Helper function to determine the election status
-  const getElectionStatus = (startDate, endDate, endTime) => {
-    const now = new Date();
-    const start = new Date(startDate);
-    const [hour, minute] = endTime.split(':');
-    const end = new Date(endDate);
-    end.setHours(hour);
-    end.setMinutes(minute);
-
-    if (now < start) {
-      return 'upcoming';
-    } else if (now > start && now < end) {
-      return 'ongoing';
-    } else if (now > end) {
-      return 'completed';
-    }
-    return 'upcoming'; // default status
+  const handleCreateElection = async (data) => {
+    setElectionData(data);
+    setShowConfirmation(true);
   };
 
-  const onSubmit = async (data) => {
-    try {
-      const { start_date, end_date, end_time, ...rest } = data;
+  const handleConfirmCreate = async () => {
+    if (adminPassword !== 'admin123') { // In production, this should be a secure verification
+      toast.error('Invalid admin password');
+      return;
+    }
 
+    try {
+      setIsSubmitting(true);
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const newElection = {
         id: elections.length + 1,
-        ...rest,
-        start_date,
-        end_date,
-        end_time,
-        status: getElectionStatus(start_date, end_date, end_time),
+        ...electionData,
+        status: 'upcoming'
       };
       
       setElections(prev => [...prev, newElection]);
       setOpen(false);
+      setShowConfirmation(false);
+      setAdminPassword('');
       form.reset();
       toast.success('Election created successfully!');
     } catch (error) {
       toast.error('Failed to create election');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -100,9 +108,9 @@ export function CreateElection() {
       case 'ongoing':
         return 'bg-green-100 text-green-800';
       case 'completed':
-        return 'bg-gray-100 text-red-800';
+        return 'bg-gray-100 text-gray-800';
       default:
-        return 'bg-gray-100 text-red-800';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -118,7 +126,7 @@ export function CreateElection() {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(handleCreateElection)}>
               <DialogHeader>
                 <DialogTitle>Create New Election</DialogTitle>
                 <DialogDescription>
@@ -192,14 +200,6 @@ export function CreateElection() {
                     />
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="end_time">End Time (HH:MM)</Label>
-                  <Input
-                    id="end_time"
-                    type="time"
-                    {...form.register('end_time')}
-                  />
-                </div>
               </div>
               <DialogFooter>
                 <Button
@@ -213,6 +213,89 @@ export function CreateElection() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Admin Confirmation Dialog */}
+        <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center text-amber-600">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                Admin Confirmation Required
+              </DialogTitle>
+              <DialogDescription>
+                Please review the election details and enter your admin password to confirm creation.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {electionData && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3"
+              >
+                <div>
+                  <span className="font-semibold">Name:</span> {electionData.name}
+                </div>
+                <div>
+                  <span className="font-semibold">Description:</span> {electionData.description}
+                </div>
+                <div>
+                  <span className="font-semibold">Location:</span> {electionData.location_id}
+                </div>
+                <div>
+                  <span className="font-semibold">District:</span> {electionData.district_id}
+                </div>
+                <div>
+                  <span className="font-semibold">Ward:</span> {electionData.ward_id}
+                </div>
+                <div>
+                  <span className="font-semibold">Duration:</span>{' '}
+                  {format(new Date(electionData.start_date), 'PP')} to{' '}
+                  {format(new Date(electionData.end_date), 'PP')}
+                </div>
+              </motion.div>
+            )}
+
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="admin-password" className="text-sm font-medium text-gray-700">
+                Admin Password
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="admin-password"
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="pl-9"
+                  placeholder="Enter admin password"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowConfirmation(false);
+                  setAdminPassword('');
+                }}
+                className="mr-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmCreate}
+                disabled={isSubmitting || !adminPassword}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                {isSubmitting ? 'Confirming...' : 'Confirm & Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {elections.length === 0 ? (
@@ -224,41 +307,46 @@ export function CreateElection() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {elections.map((election) => (
-            <div
-              key={election.id}
-              className="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200"
-            >
-              <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium text-gray-900">{election.name}</h3>
-                <p className="mt-1 text-sm text-gray-500">{election.description}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    Location: {election.location_id}
-                  </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    District: {election.district_id}
-                  </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    Ward: {election.ward_id}
-                  </span>
+          <AnimatePresence>
+            {elections.map((election) => (
+              <motion.div
+                key={election.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200"
+              >
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg font-medium text-gray-900">{election.name}</h3>
+                  <p className="mt-1 text-sm text-gray-500">{election.description}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      Location: {election.location_id}
+                    </span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      District: {election.district_id}
+                    </span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      Ward: {election.ward_id}
+                    </span>
+                  </div>
+                  <div className="mt-4 space-y-1">
+                    <p className="text-sm text-gray-500">
+                      Start: {format(new Date(election.start_date), 'PPP')}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      End: {format(new Date(election.end_date), 'PPP')}
+                    </p>
+                  </div>
+                  <div className="mt-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(election.status)}`}>
+                      {election.status.charAt(0).toUpperCase() + election.status.slice(1)}
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-4 space-y-1">
-                  <p className="text-sm text-gray-500">
-                    Start: {format(new Date(election.start_date), 'PPP')}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    End: {format(new Date(election.end_date), 'PPP')} at {election.end_time}
-                  </p>
-                </div>
-                <div className="mt-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(election.status)}`}>
-                    {election.status.charAt(0).toUpperCase() + election.status.slice(1)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
