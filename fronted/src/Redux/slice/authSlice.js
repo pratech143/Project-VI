@@ -5,19 +5,19 @@ import baseApi from "../../api/baseApi"; // Assuming you are importing baseApi
 export const fetchLogin = createAsyncThunk(
   "auth/fetchLogin",
   async ({ email, password }, { rejectWithValue }) => {
+    
     try {
-      const response = await baseApi("public/login.php", {
-        method: "POST",
-        body: { email, password },
-      });
+      const response = await baseApi.post("public/login.php",  { email, password });
 
-      const data = response;
-      console.log(response)
+      const data = response.data;
+      console.log(data)
+      
 
-      if (!response.ok) {
+      if (data.success===false) {
         throw new Error(data.message || "Login failed!");
       }
-
+      
+      
       return data;
     } catch (error) {
       return rejectWithValue(error.message);

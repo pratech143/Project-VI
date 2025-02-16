@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 export function AuthPage({ type }) {
     return (
     <div className="flex justify-center ">
-                <Tabs defaultValue={type} className="max-h-full w-1/2">
+                <Tabs defaultValue={type} className="max-h-full sm:w-full md:w-1/2">
                     <TabsList className="h-12 grid w-full grid-cols-2 gap-2 mb-6 bg-gray-900">
                         {/* Link wrapping TabsTrigger with fixed width and height */}
                         <Link to="/auth/login" className="w-full h-full">

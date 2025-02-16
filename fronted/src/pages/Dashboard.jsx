@@ -1,4 +1,4 @@
-
+import React from "react";
 
 export function Dashboard() {
   const user={email:"prtkchapagain"}

@@ -3,11 +3,12 @@ import { Vote, LogOut, User } from 'lucide-react';
 
 export function Layout({ children }) {
   const navigate = useNavigate();
-  const user=false
+  const user=localStorage.getItem("email")
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      localStorage.removeItem("email")
+      localStorage.removeItem("role")
       navigate('/auth/login');
     } catch (error) {
       console.error('Error signing out:', error);
