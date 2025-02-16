@@ -5,7 +5,7 @@ include '../config/handle_cors.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["success" => false, "message" => "You are not logged in."]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
@@ -27,7 +27,7 @@ $user_query->execute();
 $user_result = $user_query->get_result();
 
 if ($user_result->num_rows === 0) {
-    echo json_encode(["success" => false, "message" => "User not found"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
@@ -35,7 +35,6 @@ $user = $user_result->fetch_assoc();
 
 if ($role === 'admin') {
     $dashboard_data = [
-        "message" => "Welcome Admin, $email",
         "user_info" => $user,
         "role" => $role,
         "options" => [
@@ -46,7 +45,6 @@ if ($role === 'admin') {
     ];
 } else {
     $dashboard_data = [
-        "message" => "Welcome Voter, $email",
         "user_info" => [
             "voter_id" => $user['voter_id'],
             "name" => $user['name'],
@@ -67,7 +65,6 @@ if ($role === 'admin') {
 
 echo json_encode([
     "success" => true,
-    "message" => "Dashboard loaded successfully",
     "data" => $dashboard_data
 ]);
 ?>

@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { motion } from "framer-motion";
@@ -36,68 +35,64 @@ export default function UserDashboard() {
   ];
 
   return (
-    <div className="p-6 space-y-6 text-white">
-      {/* User Greeting */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex justify-between items-center bg-gray-800 p-6 rounded-lg shadow-lg"
-      >
-        <div>
-          <h1 className="text-3xl font-bold">Welcome, {user.name}!</h1>
-          <p className="text-gray-400">Location: {user.location}</p>
-          <p className="text-gray-400">Role: {user.role}</p>
-        </div>
-        <Bell className="w-6 h-6 cursor-pointer" />
-      </motion.div>
+    <div className="flex justify-center py-6 px-4 w-full bg-gray-900">
+      <div className="w-full max-w-4xl text-white">
+        {/* User Greeting */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex justify-between items-center bg-gray-800 p-6 rounded-lg shadow-lg mb-6"
+        >
+          <div>
+            <h1 className="text-3xl font-bold">Welcome, {user.name}!</h1>
+            <p className="text-gray-400">Location: {user.location}</p>
+            <p className="text-gray-400">Role: {user.role}</p>
+          </div>
+          <Bell className="w-6 h-6 cursor-pointer" />
+        </motion.div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-gray-800 hover:bg-gray-700 transition-all">
-          <CardContent className="p-4 flex flex-col space-y-2">
+        {/* Quick Actions */}
+        <div className="flex space-x-6 mb-6">
+          <div className="bg-gray-800 hover:bg-gray-700 transition-all rounded-lg p-6 flex-1">
             <h2 className="text-xl font-semibold">View Elections</h2>
             <p className="text-gray-400">Check elections in your area.</p>
             <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">Go</Button>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-800 hover:bg-gray-700 transition-all">
-          <CardContent className="p-4 flex flex-col space-y-2">
+          </div>
+          <div className="bg-gray-800 hover:bg-gray-700 transition-all rounded-lg p-6 flex-1">
             <h2 className="text-xl font-semibold">View Results</h2>
             <p className="text-gray-400">See past and current election results.</p>
             <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">Go</Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Elections with Search */}
-      <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Upcoming Elections</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search elections..."
-              className="bg-gray-700 pl-10 pr-3 py-2 rounded-lg text-white w-64"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
           </div>
         </div>
-        <ul className="space-y-2">
-          {filteredElections.map((election) => (
-            <li key={election.id} className="bg-gray-700 p-3 rounded-lg">
-              {election.name} - {election.date}
-            </li>
-          ))}
-        </ul>
-      </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-gray-800">
-          <CardContent className="p-4">
+        {/* Upcoming Elections with Search */}
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Upcoming Elections</h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search elections..."
+                className="bg-gray-700 pl-10 pr-3 py-2 rounded-lg text-white w-64"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {filteredElections.map((election) => (
+              <li key={election.id} className="bg-gray-700 p-3 rounded-lg">
+                {election.name} - {election.date}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Stats Section */}
+        <div className="flex space-x-6">
+          <div className="bg-gray-800 rounded-lg p-6 flex-1">
             <h2 className="text-xl font-semibold text-center">Voter Turnout</h2>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -118,11 +113,9 @@ export default function UserDashboard() {
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="bg-gray-800">
-          <CardContent className="p-4">
+          <div className="bg-gray-800 rounded-lg p-6 flex-1">
             <h2 className="text-xl font-semibold text-center">Voting Trend</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={barData}>
@@ -133,8 +126,8 @@ export default function UserDashboard() {
                 <Bar dataKey="votes" fill="#4CAF50" />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

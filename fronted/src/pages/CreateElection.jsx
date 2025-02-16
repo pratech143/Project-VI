@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-// import { zodResolver } from '@hookform/resolvers/zod';
-// import { z } from 'zod';
 import { format } from 'date-fns';
 import { Plus, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useDispatch, useSelector } from 'react-redux';
+import { createElection } from '../Redux/slice/electionSlice'; // Assuming this action is already defined
 
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -20,49 +19,26 @@ import {
   DialogTrigger,
 } from '../components/ui/dialog';
 
-// Mock data for elections
-const mockElections = [
-  {
-    id: 1,
-    name: 'Presidential Election 2024',
-    description: 'National presidential election for the term 2024-2028',
-    location_id: 'LOC001',
-    district_id: 'DIST001',
-    ward_id: 'WARD001',
-    start_date: '2024-11-03',
-    end_date: '2024-11-03',
-    status: 'upcoming'
-  }
-];
-
-// const formSchema = z.object({
-//   name: z.string().min(3, 'Election name must be at least 3 characters'),
-//   description: z.string().min(10, 'Description must be at least 10 characters'),
-//   location_id: z.string().min(1, 'Location ID is required'),
-//   district_id: z.string().min(1, 'District ID is required'),
-//   ward_id: z.string().min(1, 'Ward ID is required'),
-//   start_date: z.string().min(1, 'Start date is required'),
-//   end_date: z.string().min(1, 'End date is required')
-// });
-
 export function CreateElection() {
-  const [elections, setElections] = useState(mockElections);
+  const dispatch = useDispatch();
+  const { isLoading, isError, errorMessage } = useSelector((state) => state.election); // Getting loading/error state from redux store
+
   const [open, setOpen] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [electionData, setElectionData] = useState(null);
 
   const form = useForm({
-    // resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       description: '',
-      location_id: '',
-      district_id: '',
-      ward_id: '',
+      location_name: '',
+      location_type: '',
+      district_name: '',
+      ward: '',
       start_date: '',
-      end_date: ''
+      end_date: '',
+      status: 'upcoming' // Default status can be 'upcoming', adjust based on your requirements
     }
   });
 
@@ -72,32 +48,23 @@ export function CreateElection() {
   };
 
   const handleConfirmCreate = async () => {
-    if (adminPassword !== 'admin123') { // In production, this should be a secure verification
+    if (adminPassword !== 'admin123') {
       toast.error('Invalid admin password');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newElection = {
-        id: elections.length + 1,
-        ...electionData,
-        status: 'upcoming'
-      };
-      
-      setElections(prev => [...prev, newElection]);
+      // Dispatch the createElection action to trigger the API call
+      await dispatch(createElection(electionData)).unwrap(); // Using unwrap to catch any errors
+
+      // If successful, reset the form and close the dialog
       setOpen(false);
       setShowConfirmation(false);
       setAdminPassword('');
       form.reset();
       toast.success('Election created successfully!');
     } catch (error) {
-      toast.error('Failed to create election');
-    } finally {
-      setIsSubmitting(false);
+      toast.error(`Failed to create election: ${errorMessage || error}`);
     }
   };
 
@@ -141,9 +108,6 @@ export function CreateElection() {
                     {...form.register('name')}
                     placeholder="Enter election name"
                   />
-                  {form.formState.errors.name && (
-                    <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
-                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="description">Description</Label>
@@ -152,34 +116,37 @@ export function CreateElection() {
                     {...form.register('description')}
                     placeholder="Enter election description"
                   />
-                  {form.formState.errors.description && (
-                    <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="location_id">Location ID</Label>
-                    <Input
-                      id="location_id"
-                      {...form.register('location_id')}
-                      placeholder="Enter location ID"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="district_id">District ID</Label>
-                    <Input
-                      id="district_id"
-                      {...form.register('district_id')}
-                      placeholder="Enter district ID"
-                    />
-                  </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="ward_id">Ward ID</Label>
+                  <Label htmlFor="location_name">Location Name</Label>
                   <Input
-                    id="ward_id"
-                    {...form.register('ward_id')}
-                    placeholder="Enter ward ID"
+                    id="location_name"
+                    {...form.register('location_name')}
+                    placeholder="Enter location name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="location_type">Location Type</Label>
+                  <Input
+                    id="location_type"
+                    {...form.register('location_type')}
+                    placeholder="Enter location type"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="district_name">District Name</Label>
+                  <Input
+                    id="district_name"
+                    {...form.register('district_name')}
+                    placeholder="Enter district name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="ward">Ward</Label>
+                  <Input
+                    id="ward"
+                    {...form.register('ward')}
+                    placeholder="Enter ward name"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -200,14 +167,26 @@ export function CreateElection() {
                     />
                   </div>
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="status">Election Status</Label>
+                  <select
+                    id="status"
+                    {...form.register('status')}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
               </div>
               <DialogFooter>
                 <Button
                   type="submit"
                   className="bg-indigo-600 hover:bg-indigo-700"
-                  disabled={form.formState.isSubmitting}
+                  disabled={form.formState.isSubmitting || isLoading}
                 >
-                  {form.formState.isSubmitting ? 'Creating...' : 'Create Election'}
+                  {isLoading ? 'Creating...' : 'Create Election'}
                 </Button>
               </DialogFooter>
             </form>
@@ -228,11 +207,7 @@ export function CreateElection() {
             </DialogHeader>
             
             {electionData && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3"
-              >
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
                 <div>
                   <span className="font-semibold">Name:</span> {electionData.name}
                 </div>
@@ -240,20 +215,26 @@ export function CreateElection() {
                   <span className="font-semibold">Description:</span> {electionData.description}
                 </div>
                 <div>
-                  <span className="font-semibold">Location:</span> {electionData.location_id}
+                  <span className="font-semibold">Location:</span> {electionData.location_name}
                 </div>
                 <div>
-                  <span className="font-semibold">District:</span> {electionData.district_id}
+                  <span className="font-semibold">Location Type:</span> {electionData.location_type}
                 </div>
                 <div>
-                  <span className="font-semibold">Ward:</span> {electionData.ward_id}
+                  <span className="font-semibold">District:</span> {electionData.district_name}
+                </div>
+                <div>
+                  <span className="font-semibold">Ward:</span> {electionData.ward}
                 </div>
                 <div>
                   <span className="font-semibold">Duration:</span>{' '}
                   {format(new Date(electionData.start_date), 'PP')} to{' '}
                   {format(new Date(electionData.end_date), 'PP')}
                 </div>
-              </motion.div>
+                <div>
+                  <span className="font-semibold">Status:</span> {electionData.status}
+                </div>
+              </div>
             )}
 
             <div className="mt-4 space-y-2">
@@ -288,67 +269,15 @@ export function CreateElection() {
               <Button
                 type="button"
                 onClick={handleConfirmCreate}
-                disabled={isSubmitting || !adminPassword}
+                disabled={isLoading || !adminPassword}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
-                {isSubmitting ? 'Confirming...' : 'Confirm & Create'}
+                {isLoading ? 'Confirming...' : 'Confirm & Create'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-
-      {elections.length === 0 ? (
-        <div className="text-center py-12">
-          <h3 className="mt-2 text-sm font-semibold text-gray-900">No elections</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Get started by creating a new election.
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <AnimatePresence>
-            {elections.map((election) => (
-              <motion.div
-                key={election.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200"
-              >
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg font-medium text-gray-900">{election.name}</h3>
-                  <p className="mt-1 text-sm text-gray-500">{election.description}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      Location: {election.location_id}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      District: {election.district_id}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      Ward: {election.ward_id}
-                    </span>
-                  </div>
-                  <div className="mt-4 space-y-1">
-                    <p className="text-sm text-gray-500">
-                      Start: {format(new Date(election.start_date), 'PPP')}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      End: {format(new Date(election.end_date), 'PPP')}
-                    </p>
-                  </div>
-                  <div className="mt-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(election.status)}`}>
-                      {election.status.charAt(0).toUpperCase() + election.status.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
     </div>
   );
 }
