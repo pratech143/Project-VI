@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchUserData } from "@/Redux/slice/userSlice";
 import { Button } from "@/components/ui/button";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { motion } from "framer-motion";
 import { Search, Bell } from "lucide-react";
 
 export default function UserDashboard() {
-  const user = {
-    name: "Harry",
-    location: "New York, USA",
-    role: "Voter",
-  };
+  const dispatch = useDispatch();
+
+  // Fetch user data from Redux
+  const { user_id, role, email, voter_id, isLoading, isError } = useSelector((state) => state.user);
+
+  useEffect(() => {
+    dispatch(fetchUserData({ user_id, role, email, voter_id }));
+  }, [dispatch]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [elections, setElections] = useState([
@@ -22,18 +26,6 @@ export default function UserDashboard() {
     e.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const pieData = [
-    { name: "Voted", value: 65 },
-    { name: "Not Voted", value: 35 },
-  ];
-  const colors = ["#4CAF50", "#FF6384"];
-
-  const barData = [
-    { name: "2020", votes: 1500 },
-    { name: "2022", votes: 1800 },
-    { name: "2024", votes: 2200 },
-  ];
-
   return (
     <div className="flex justify-center py-6 px-4 w-full bg-gray-900">
       <div className="w-full max-w-4xl text-white">
@@ -45,9 +37,18 @@ export default function UserDashboard() {
           className="flex justify-between items-center bg-gray-800 p-6 rounded-lg shadow-lg mb-6"
         >
           <div>
-            <h1 className="text-3xl font-bold">Welcome, {user.name}!</h1>
-            <p className="text-gray-400">Location: {user.location}</p>
-            <p className="text-gray-400">Role: {user.role}</p>
+            {isLoading ? (
+              <p>Loading user data...</p>
+            ) : isError ? (
+              <p className="text-red-500">Error loading user data</p>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold">Welcome, {email}!</h1>
+                <p className="text-gray-400">User ID: {user_id}</p>
+                <p className="text-gray-400">Role: {role}</p>
+                <p className="text-gray-400">Voter ID: {voter_id}</p>
+              </>
+            )}
           </div>
           <Bell className="w-6 h-6 cursor-pointer" />
         </motion.div>
@@ -88,45 +89,6 @@ export default function UserDashboard() {
               </li>
             ))}
           </ul>
-        </div>
-
-        {/* Stats Section */}
-        <div className="flex space-x-6">
-          <div className="bg-gray-800 rounded-lg p-6 flex-1">
-            <h2 className="text-xl font-semibold text-center">Voter Turnout</h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                  label
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index]} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-gray-800 rounded-lg p-6 flex-1">
-            <h2 className="text-xl font-semibold text-center">Voting Trend</h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={barData}>
-                <XAxis dataKey="name" stroke="white" />
-                <YAxis stroke="white" />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="votes" fill="#4CAF50" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
         </div>
       </div>
     </div>

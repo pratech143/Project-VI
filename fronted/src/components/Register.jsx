@@ -122,7 +122,7 @@ export function Register() {
             </div>
           </div>
 
-          {errors.general && <p className="text-red-400">{errors.general}</p>}
+          
           {errorMessage && <p className="text-red-400">{errorMessage}</p>}
 
           <Button

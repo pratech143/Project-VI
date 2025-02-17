@@ -1,13 +1,24 @@
 import React from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { LogOut, User, BarChart } from 'lucide-react';
-
+import { useDispatch } from 'react-redux';
+import {userLogout} from"@/Redux/slice/authSlice"
+import { toast } from 'react-hot-toast';
 export default function Header() {
     const navigate = useNavigate();
     const email = localStorage.getItem("email");
     const role = localStorage.getItem("role");
+    const dispatch=useDispatch()
 
     const handleSignOut = async () => {
+        
+        try{
+            dispatch(userLogout())
+            toast.success("successfully logged out")
+        }
+        catch(error){
+            console.log(error.message)
+        }
         localStorage.removeItem("email");
         localStorage.removeItem("role");
         navigate("/auth/login");

@@ -25,6 +25,29 @@ export const fetchLogin = createAsyncThunk(
   }
 );
 
+export const userLogout = createAsyncThunk(
+  "auth/logout",
+  async ( { rejectWithValue }) => {
+
+    try {
+      const response = await baseApi.post("logout.php", { email, password });
+
+      const data = response.data;
+      console.log(data)
+
+
+      if (data.success === false) {
+        throw new Error(data.message || "Login failed!");
+      }
+
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Register action
 export const fetchRegister = createAsyncThunk(
   "auth/fetchRegister",
@@ -128,7 +151,24 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.isError = true;
       state.errorMessage = action.payload;
-    });
+    })
+
+    .addCase(userLogout.pending, (state) => {
+      state.isLoading = true;
+      state.isError = false;
+      state.errorMessage = "";
+    })
+  .addCase(userLogout.fulfilled, (state, action) => {
+    state.isLoading = false;
+    
+  })
+  .addCase(userLogout.rejected, (state, action) => {
+    state.isLoading = false;
+    state.isError = true;
+    state.errorMessage = action.payload;
+  });
+
+  
 },
 });
 

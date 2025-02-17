@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog";
 import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select"; // Corrected import
+import { fetchLogin } from "@/Redux/slice/authSlice";
 
 export function CreateElection() {
   const dispatch = useDispatch();
@@ -47,7 +48,7 @@ export function CreateElection() {
       ward: "",
       start_date: "",
       end_date: "",
-      status: "Upcoming",
+      status: "",
     },
   });
 
@@ -103,22 +104,30 @@ export function CreateElection() {
   };
 
   const handleConfirmCreate = async () => {
-    if (adminPassword !== "admin123") {
-      toast.error("Invalid admin password");
-      return;
-    }
-
     try {
+      // Fetch the email from localStorage and perform login if necessary
+      const email = localStorage.getItem("email");
+      if (email && adminPassword) {
+        data=await dispatch(fetchLogin({ email, password: adminPassword })).unwrap();
+        error=data.message
+      }
+  
+      // Now attempt to create the election
       await dispatch(createElection(electionData)).unwrap();
+  
+      // On success, close the dialog, reset form and show success toast
       setOpen(false);
       setShowConfirmation(false);
       setAdminPassword("");
       form.reset();
       toast.success("Election created successfully!");
     } catch (error) {
-      toast.error(`Failed to create election: ${errorMessage || error}`);
+      // Handle failure: if login or election creation fails, show error
+      console.error("Error:", error); // Optionally log the error for debugging
+      toast.error(`Failed to create election: ${errorMessage || error.message || "invalid password"}`);
     }
   };
+  
 
   const handleDistrictChange = (district) => {
     setSelectedDistrict(district);
@@ -259,7 +268,7 @@ export function CreateElection() {
                   <input
                     id="status"
                     readOnly
-                    value={getStatus()}
+                    value={watch("status")}
                     className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
                   />
                 </div>
