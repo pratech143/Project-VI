@@ -18,6 +18,7 @@ if (!$data) {
 }
 
 $name = $data['name'] ?? null;
+$description = $data['description'] ?? null;
 $district_name = $data['district_name'] ?? null;
 $location_name = $data['location_name'] ?? null;
 $location_type = $data['location_type'] ?? null;
@@ -26,7 +27,7 @@ $start_date = $data['start_date'] ?? null;
 $end_date = $data['end_date'] ?? null;
 $status = $data['status'] ?? 'Upcoming';
 
-if (empty($name) || empty($district_name) || empty($location_name) || empty($location_type) || empty($start_date) || empty($end_date)) {
+if (empty($name) || empty($description) || empty($district_name) || empty($location_name) || empty($location_type) || empty($start_date) || empty($end_date)) {
     echo json_encode(["success" => false, "message" => "All fields are required"]);
     exit;
 }
@@ -60,8 +61,8 @@ foreach ($available_posts as $post_id) {
         continue;
     }
 
-    $insert_election = $conn->prepare("INSERT INTO elections (name, location_id, ward, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?)");
-    $insert_election->bind_param("siisss", $name, $location_id, $post_ward, $start_date, $end_date, $status);
+    $insert_election = $conn->prepare("INSERT INTO elections (name, description, location_id, ward, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $insert_election->bind_param("ssiisss", $name, $description, $location_id, $post_ward, $start_date, $end_date, $status);
 
     if ($insert_election->execute()) {
         $election_id = $conn->insert_id;
@@ -91,6 +92,7 @@ foreach ($available_posts as $post_id) {
         $message = "Dear Voter,\n\nWe would like to inform you that an election is taking place in your ward.\n";
         $message .= "Election Details:\n";
         $message .= "Name: " . $name . "\n";
+        $message .= "Description: " . $description . "\n";
         $message .= "Location: " . $location_name . " (" . $district_name . ")\n";
         $message .= "Ward: " . $ward . "\n";
         $message .= "Start Date: " . $start_date . "\n";
