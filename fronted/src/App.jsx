@@ -11,6 +11,7 @@ import OTP from './pages/OTP';
 import { CreateElection } from './pages/CreateElection';
 import { ElectionResults } from './pages/electionResults';
 import VotingPage from './pages/VotingPage';
+import { ForgotPasswordPage } from './pages/PasswordReset';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="auth/register" element={<AuthPage type="register" />} />
           <Route path="votingpage" element={<VotingPage />} />
           <Route path="results" element={<ElectionResults />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="createelection" element={<CreateElection />} />
           <Route path="OTP" element={<OTP />} />
           <Route path="register" element={<Register />} />

@@ -1,9 +1,16 @@
 <?php
 include '../config/database.php';
-include '../config/mail_config.php';
+include '../config/mail_config.php'; 
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
+
+// session_start();
+
+// if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
+//     echo json_encode(["success" => false, "message" => "Unauthorized access."]);
+//     exit;
+// }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
@@ -48,14 +55,15 @@ $location_type = $location_data['location_type'];
 
 $available_posts = [];
 if (in_array($location_type, ['Metropolitan City', 'Sub-Metropolitan City', 'Municipality'])) {
-    $available_posts = [1, 2, 3, 4];
+    $available_posts = [1, 2, 3, 4]; 
 } else if ($location_type === 'Rural Municipality/VDC') {
-    $available_posts = [3, 4]; 
+    $available_posts = [3, 4];
 }
 
 $election_ids = [];
+
 foreach ($available_posts as $post_id) {
-    $post_ward = ($post_id == 1 || $post_id == 2) ? 0 : $ward; 
+    $post_ward = ($post_id == 1 || $post_id == 2) ? 0 : $ward;
 
     if ($location_type === 'Rural Municipality/VDC' && in_array($post_id, [1, 2])) {
         continue;
@@ -82,7 +90,7 @@ foreach ($available_posts as $post_id) {
             "post_id" => $post_id,
             "candidates" => $candidates
         ];
-        //email process
+
         $send_email = $conn->prepare("SELECT email FROM users WHERE voter_id IN (SELECT voter_id FROM government_voters WHERE location_id = ? AND ward = ?)");
         $send_email->bind_param("ii", $location_id, $ward);
         $send_email->execute();
@@ -94,23 +102,26 @@ foreach ($available_posts as $post_id) {
         $message .= "Name: " . $name . "\n";
         $message .= "Description: " . $description . "\n";
         $message .= "Location: " . $location_name . " (" . $district_name . ")\n";
-        $message .= "Ward: " . $ward . "\n";
+        $message .= "Ward: " . ($post_ward == 0 ? "All Wards" : $ward) . "\n";
         $message .= "Start Date: " . $start_date . "\n";
         $message .= "End Date: " . $end_date . "\n\n";
         $message .= "Please be prepared to vote for the candidates running for the following positions:\n";
 
         foreach ($available_posts as $post_id) {
-            if ($post_id == 1) $message .= "Mayor\n";
-            if ($post_id == 2) $message .= "Deputy Mayor\n";
-            if ($post_id == 3) $message .= "Ward Chairperson\n";
-            if ($post_id == 4) $message .= "Ward Member\n";
+            if ($post_id == 1) $message .= "- Mayor\n";
+            if ($post_id == 2) $message .= "- Deputy Mayor\n";
+            if ($post_id == 3) $message .= "- Ward Chairperson\n";
+            if ($post_id == 4) $message .= "- Ward Member\n";
         }
 
         $message .= "\nThank you for your participation in the democratic process.\nBest regards,\nElection Team";
 
         while ($email_row = $email_result->fetch_assoc()) {
             $to = $email_row['email'];
-            mail($to, $subject, $message); 
+            if (!sendEmail($to, $subject, $message)) {  
+                echo json_encode(["success" => false, "message" => "Election created but failed to send emails."]);
+                exit;
+            }
         }
     } else {
         echo json_encode(["success" => false, "message" => "Failed to create election. Please try again."]);
