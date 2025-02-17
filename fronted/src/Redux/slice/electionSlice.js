@@ -1,13 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import baseApi from "../../api/baseApi"; // Assuming you are importing baseApi
+import baseApi from "../../api/baseApi"; 
 
-// Create Election action
 export const createElection = createAsyncThunk(
-  "election/createElection", // Action type should reflect the slice name
-  async ({ name, district_name, location_name, location_type, ward, start_date, end_date, status }, { rejectWithValue }) => {
+  "election/createElection", 
+  async ({ name, district_name, location_name, location_type, ward, start_date, end_date, status,description }, { rejectWithValue }) => {
     try {
       const response = await baseApi.post("admin/create_election.php", {
         name,
+        description,
         district_name,
         location_name,
         location_type,
@@ -55,7 +55,6 @@ const electionSlice = createSlice({
       })
       .addCase(createElection.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Update the state with the data returned from the API
         state.name = action.payload.name;
         state.district_name = action.payload.district_name;
         state.location_name = action.payload.location_name;
@@ -64,11 +63,11 @@ const electionSlice = createSlice({
         state.start_date = action.payload.start_date;
         state.end_date = action.payload.end_date;
         state.status = action.payload.status;
+        state.description = action.payload.description;
       })
       .addCase(createElection.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
-        // action.payload could contain the error message
         state.errorMessage = action.payload || "An error occurred";
       });
   },

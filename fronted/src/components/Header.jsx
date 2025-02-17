@@ -12,8 +12,6 @@ export default function Header() {
         localStorage.removeItem("role");
         navigate("/auth/login");
     };
-
-    // If no email, show only login link
     if (!email) {
         return (
             <header className="shadow sticky z-50 top-0">
@@ -22,7 +20,7 @@ export default function Header() {
                         <Link to="/" className="flex items-center">
                             <img
                                 src="/logo.png"
-                                className="mr-3 h-12"
+                                className="mr-3  h-20"
                                 alt="Logo"
                             />
                         </Link>
