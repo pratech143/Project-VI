@@ -1,6 +1,7 @@
 <?php
 session_start();
 include '../config/database.php';
+include '../config/mail_config.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
@@ -129,6 +130,18 @@ try {
     $conn->rollback();
     echo json_encode(["success" => false, "message" => "Voting failed. Error: " . $e->getMessage()]);
     exit;
+}
+
+if (count($success_votes) > 0) {
+    $subject = "Vote Confirmation - $election_name";
+    
+    $message = "Dear Voter,\n\nYou have successfully voted in the '$election_name' election.\n\n";
+    foreach ($success_votes as $vote) {
+        $message .= "You have voted for the position of {$vote['post_name']}.\n";
+    }
+    $message .= "\nThank you for participating in the democratic process.\n\nRegards,\nElection System Team";
+
+    sendEmail($voter_email, $subject, nl2br($message));
 }
 
 echo json_encode([
