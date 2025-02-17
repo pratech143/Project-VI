@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Plus, AlertCircle, Lock } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
-import { createElection } from "../Redux/slice/electionSlice";
+import { createElection, fetchLocations } from "../Redux/slice/electionSlice";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
+import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select"; // Corrected import
 
 export function CreateElection() {
   const dispatch = useDispatch();
@@ -27,6 +28,14 @@ export function CreateElection() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [electionData, setElectionData] = useState(null);
+
+  // New state for dynamic data
+  const [districtData, setDistrictData] = useState({});
+  const [locations, setLocations] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedWards, setSelectedWards] = useState("");
 
   const form = useForm({
     defaultValues: {
@@ -44,7 +53,24 @@ export function CreateElection() {
 
   const { watch, setValue } = form;
 
-  /** ✅ Function to determine election status */
+  // Fetching data on page load
+  useEffect(() => {
+    const fetchLocationData = async () => {
+      try {
+        const data = await dispatch(fetchLocations()).unwrap();
+        setDistrictData(data); // Storing data in state
+      } catch (error) {
+        console.error(error.message);
+      }
+    };
+
+    fetchLocationData();
+  }, [dispatch]);
+
+  useEffect(() => {
+    setValue("status", getStatus());
+  }, [watch("start_date"), watch("end_date")]);
+
   const getStatus = () => {
     const startDate = watch("start_date");
     const endDate = watch("end_date");
@@ -66,17 +92,12 @@ export function CreateElection() {
     }
   };
 
-  /** ✅ Automatically update status when dates change */
-  useEffect(() => {
-    setValue("status", getStatus());
-  }, [watch("start_date"), watch("end_date")]);
-
-  /** ✅ Prevent selecting past dates */
   const today = new Date().toISOString().split("T")[0];
   const startDate = watch("start_date");
-  const minEndDate = startDate || today; // End Date must be on/after Start Date
+  const minEndDate = startDate || today;
 
   const handleCreateElection = async (data) => {
+    console.log(data); // Log form data for debugging
     setElectionData(data);
     setShowConfirmation(true);
   };
@@ -99,6 +120,34 @@ export function CreateElection() {
     }
   };
 
+  const handleDistrictChange = (district) => {
+    setSelectedDistrict(district);
+    setLocations(districtData[district] || []);
+    setSelectedLocation("");
+    setWards([]);
+    setSelectedWards("");
+    setValue("district_name", district);
+  };
+
+  const handleLocationChange = (location) => {
+    setSelectedLocation(location);
+    setSelectedWards("");
+    const locationDetails = locations.find((loc) => loc.location_name === location);
+    setValue("location_name", location);
+    setValue("location_type", locationDetails?.location_type || "");
+    setWards(Array.from({ length: locationDetails?.wards || 0 }, (_, i) => i + 1));
+    setValue("ward", ""); // Reset ward when location changes
+  };
+
+  const handleWardChange = (ward) => {
+    setSelectedWards(ward);
+    setValue("ward", ward); // Update form state with ward selection
+  };
+
+  useEffect(() => {
+    console.log(selectedWards); // Debug selected ward
+  }, [selectedWards]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-6">
@@ -117,7 +166,66 @@ export function CreateElection() {
                 <DialogDescription>Fill in the details below to create a new election.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                {["name", "description", "location_name", "location_type", "district_name", "ward"].map((field) => (
+                <div className="grid gap-2">
+                  <Label htmlFor="district_name">Select District</Label>
+                  <Select id="district_name" value={selectedDistrict} onValueChange={handleDistrictChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select District" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(districtData).map((district) => (
+                        <SelectItem key={district} value={district}>
+                          {district}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="location_name">Select Location</Label>
+                  <Select id="location_name" value={selectedLocation} onValueChange={handleLocationChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc) => (
+                        <SelectItem key={loc.location_name} value={loc.location_name}>
+                          {loc.location_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="location_type">Location Type</Label>
+                  <input
+                    id="location_type"
+                    type="text"
+                    value={watch("location_type")}
+                    readOnly
+                    className="w-full p-2 border border-gray-300 rounded-md bg-gray-100"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="ward">Select Ward</Label>
+                  <Select id="ward" value={selectedWards} onValueChange={handleWardChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Ward" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wards.map((ward) => (
+                        <SelectItem key={ward} value={ward}>
+                          {ward}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {["name", "description"].map((field) => (
                   <div key={field} className="grid gap-2">
                     <Label htmlFor={field}>{field.replace("_", " ")}</Label>
                     <Input id={field} {...form.register(field)} placeholder={`Enter ${field.replace("_", " ")}`} />
@@ -125,30 +233,27 @@ export function CreateElection() {
                 ))}
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* ✅ Disabled past dates for Start Date */}
                   <div className="grid gap-2">
                     <Label htmlFor="start_date">Start Date</Label>
                     <Input
                       id="start_date"
                       type="date"
                       {...form.register("start_date")}
-                      min={today} // Prevent past dates
+                      min={today}
                     />
                   </div>
 
-                  {/* ✅ End Date can't be before Start Date */}
                   <div className="grid gap-2">
                     <Label htmlFor="end_date">End Date</Label>
                     <Input
                       id="end_date"
                       type="date"
                       {...form.register("end_date")}
-                      min={minEndDate} // Prevent end date before start date
+                      min={minEndDate}
                     />
                   </div>
                 </div>
 
-                {/* ✅ Fixed Status Field */}
                 <div className="grid gap-2">
                   <Label htmlFor="status">Election Status</Label>
                   <input
@@ -169,7 +274,6 @@ export function CreateElection() {
           </DialogContent>
         </Dialog>
 
-        {/* ✅ Admin Confirmation Dialog */}
         <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>

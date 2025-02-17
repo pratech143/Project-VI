@@ -1,9 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import baseApi from "../../api/baseApi"; 
+import baseApi from "../../api/baseApi";
 
+// Thunk to create an election
 export const createElection = createAsyncThunk(
-  "election/createElection", 
-  async ({ name, district_name, location_name, location_type, ward, start_date, end_date, status,description }, { rejectWithValue }) => {
+  "election/createElection",
+  async (
+    { name, district_name, location_name, location_type, ward, start_date, end_date, status, description },
+    { rejectWithValue }
+  ) => {
     try {
       const response = await baseApi.post("admin/create_election.php", {
         name,
@@ -18,14 +22,29 @@ export const createElection = createAsyncThunk(
       });
 
       const data = response.data;
-      console.log(data)
       if (!data.success) {
         throw new Error(data.message || "Election creation failed!");
       }
-
       return data;
     } catch (error) {
       return rejectWithValue(error.message || "An error occurred");
+    }
+  }
+);
+
+// Thunk to fetch locations
+export const fetchLocations = createAsyncThunk(
+  "election/fetchLocations",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await baseApi.get("function/export_location.php");
+      const data = response.data;
+      if (!data.success) {
+        throw new Error(data.message || "Failed to fetch locations!");
+      }
+      return data.locations;
+    } catch (error) {
+      return rejectWithValue(error.message || "An error occurred while fetching locations");
     }
   }
 );
@@ -41,6 +60,8 @@ const electionSlice = createSlice({
     start_date: "",
     end_date: "",
     status: "",
+    description: "",
+    locations: {},
     isLoading: false,
     isError: false,
     errorMessage: "",
@@ -55,20 +76,24 @@ const electionSlice = createSlice({
       })
       .addCase(createElection.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.name = action.payload.name;
-        state.district_name = action.payload.district_name;
-        state.location_name = action.payload.location_name;
-        state.location_type = action.payload.location_type;
-        state.ward = action.payload.ward;
-        state.start_date = action.payload.start_date;
-        state.end_date = action.payload.end_date;
-        state.status = action.payload.status;
-        state.description = action.payload.description;
+        Object.assign(state, action.payload);
       })
       .addCase(createElection.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.errorMessage = action.payload || "An error occurred";
+      })
+      .addCase(fetchLocations.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchLocations.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.locations = action.payload;
+      })
+      .addCase(fetchLocations.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.errorMessage = action.payload || "Failed to fetch locations";
       });
   },
 });

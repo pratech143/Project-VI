@@ -54,7 +54,10 @@ export function Register() {
     try {
       await dispatch(fetchRegister(formData)).unwrap();
       toast.success('Registration successful! Please check your email to verify your account.');
-      navigate('/otp');
+      navigate('/otp', { state: {email: formData.email } });
+
+
+
     } catch (error) {
       toast.error(error);
       setErrors((prev) => ({ ...prev, general: error }));

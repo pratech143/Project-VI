@@ -12,24 +12,57 @@ import { CreateElection } from './pages/CreateElection';
 import { ElectionResults } from './pages/electionResults';
 import VotingPage from './pages/VotingPage';
 import { ForgotPasswordPage } from './pages/PasswordReset';
+import ProtectedRoute from './components/ProtectedRoutes'; // Import ProtectedRoute component
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Layout />}>
+          {/* Public Pages */}
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="OTP" element={<OTP />} />
+          <Route path="register" element={<Register />} />
           <Route index element={<Home />} />
           <Route path="auth/login" element={<AuthPage type="login" />} />
           <Route path="auth/register" element={<AuthPage type="register" />} />
           <Route path="votingpage" element={<VotingPage />} />
           <Route path="results" element={<ElectionResults />} />
-          <Route path="forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="createelection" element={<CreateElection />} />
-          <Route path="OTP" element={<OTP />} />
-          <Route path="register" element={<Register />} />
-          <Route path="dashboard" element={<UserDashboard />} />
-          <Route path="elections" element={<Elections />} />
-          <Route path="admindashboard" element={<AdminDashboard />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="createelection"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <CreateElection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="elections"
+            element={
+              <ProtectedRoute allowedRoles={['voter', 'admin']}>
+                <Elections />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['voter']}>
+                <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="admindashboard"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
       <Toaster position="top-right" />

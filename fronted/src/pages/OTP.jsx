@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { ShieldCheck, Key } from "lucide-react";
 import {
@@ -12,44 +13,46 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { fetchOTP } from "@/Redux/slice/authSlice"; // Import your OTP action
 
 const OTP = () => {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Extract email from navigation state
+  const email = location.state?.email;
+
+  // Get loading state and error message from Redux
+  const { isLoading, errorMessage } = useSelector((state) => state.auth);
 
   const handleChange = (e) => {
     setOtp(e.target.value);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    // Validate OTP
-    if (!otp.trim()) {
-      setError("OTP is required.");
-      return;
-    }
-
-    console.log(otp);
-
-    if (otp === "1234") {
-      setIsSuccess(true);
-      setError("");
-      toast.success("OTP verified successfully! Login to continue.");
+    try {
+      console.log(email)
+      console.log(otp)
+      await dispatch(fetchOTP({ email, otp })).unwrap();
+      toast.success("OTP validated successfully. Email is verified!");
       navigate("/auth/login");
-    } else {
-      setError("Invalid OTP. Please try again.");
-      setIsSuccess(false);
+    } catch (err) {
+      setError(err.message || "Invalid OTP. Please try again.");
+      toast.error(err.message || "OTP verification failed.");
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-blue">
-      <Card className="w-full max-w-md p-6 shadow-md border-none bg-slate-blue">
+    <div className="flex items-center justify-center min-h-screen bg-slate-800">
+      <Card className="w-full max-w-md p-6 shadow-md border-none bg-slate-900">
         <CardHeader className="text-center">
-          <ShieldCheck className="mx-auto h-14 w-14 text-indigo-600" />
+          <ShieldCheck className="mx-auto h-14 w-14 text-indigo-500" />
           <CardTitle className="text-2xl font-semibold text-white">
             Verify Your Email
           </CardTitle>
@@ -74,20 +77,21 @@ const OTP = () => {
                   maxLength="6"
                   placeholder="123456"
                   required
-                  className="pl-10 text-white w-full border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  className="pl-10 text-white w-full border border-gray-500 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
-              {error && <p className="text-red-600 text-sm">{error}</p>}
-              {isSuccess && (
-                <p className="text-green-600 text-sm">OTP Verified Successfully!</p>
-              )}
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-md"
+              disabled={isLoading}
+              className={`w-full ${
+                isLoading ? "bg-gray-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              } text-white font-semibold py-2 rounded-md`}
             >
-              Verify OTP
+              {isLoading ? "Verifying..." : "Verify OTP"}
             </Button>
           </form>
         </CardContent>
