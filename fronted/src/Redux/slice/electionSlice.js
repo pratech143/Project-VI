@@ -4,7 +4,7 @@ import baseApi from "../../api/baseApi"; // Assuming you are importing baseApi
 // Create Election action
 export const createElection = createAsyncThunk(
   "election/createElection", // Action type should reflect the slice name
-  async ({ name, district_name, location_name, location_type, ward, start_date, end_date, status }, { rejectWithValue }) => {
+  async ({ name, district_name, location_name, location_type, ward, start_date, end_date, status,description }, { rejectWithValue }) => {
     try {
       const response = await baseApi.post("admin/create_election.php", {
         name,
@@ -64,6 +64,7 @@ const electionSlice = createSlice({
         state.start_date = action.payload.start_date;
         state.end_date = action.payload.end_date;
         state.status = action.payload.status;
+        tate.status = action.payload.;
       })
       .addCase(createElection.rejected, (state, action) => {
         state.isLoading = false;
