@@ -12,17 +12,6 @@ export default function UserDashboard() {
   const emailFromStorage = localStorage.getItem("email");
 
   // Fetch user data from Redux
-<<<<<<< HEAD
-  const { user_id, role, voter_id, isLoading, isError } = useSelector((state) => state.user);
-
-  useEffect(() => {
-    if ( emailFromStorage) {
-      // Dispatch action with the email fetched from localStorage
-    const  data=dispatch(fetchUserData({ user_id, role, email: emailFromStorage, voter_id }));
-      console.log(data)
-    }
-  }, [ emailFromStorage]);
-=======
   const {
     name,
     user_id,
@@ -45,7 +34,6 @@ export default function UserDashboard() {
         .catch((err) => console.log("Error:", err));
     }
   }, [dispatch]);
->>>>>>> 41eb164c4051a43ba6325a083b8727ca7a5edb48
 
   const [searchTerm, setSearchTerm] = useState("");
   const [elections, setElections] = useState([
@@ -75,11 +63,7 @@ export default function UserDashboard() {
               <p className="text-red-500">Error loading user data</p>
             ) : (
               <>
-<<<<<<< HEAD
-                <h1 className="text-3xl font-bold">Welcome, {emailFromStorage}!</h1>
-=======
                 <h1 className="text-3xl font-bold">Welcome, {name}!</h1>
->>>>>>> 41eb164c4051a43ba6325a083b8727ca7a5edb48
                 <p className="text-gray-400">User ID: {user_id}</p>
                 <p className="text-gray-400">Role: {role}</p>
                 <p className="text-gray-400">Voter ID: {voter_id}</p>
