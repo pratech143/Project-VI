@@ -9,10 +9,27 @@ export default function UserDashboard() {
   const dispatch = useDispatch();
 
   // Fetch user data from Redux
-  const { user_id, role, email, voter_id, isLoading, isError } = useSelector((state) => state.user);
+  const {
+    name,
+    user_id,
+    role,
+    email,
+    voter_id,
+    dob,
+    gender,
+    location,
+    isLoading,
+    isError,
+  } = useSelector((state) => state.user);
 
   useEffect(() => {
-    dispatch(fetchUserData({ user_id, role, email, voter_id }));
+    const email = localStorage.getItem("email");
+    if (email) {
+      dispatch(fetchUserData({ email }))
+        .unwrap()
+        .then((data) => console.log("User Data:", data))
+        .catch((err) => console.log("Error:", err));
+    }
   }, [dispatch]);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,10 +60,14 @@ export default function UserDashboard() {
               <p className="text-red-500">Error loading user data</p>
             ) : (
               <>
-                <h1 className="text-3xl font-bold">Welcome, {email}!</h1>
+                <h1 className="text-3xl font-bold">Welcome, {name}!</h1>
                 <p className="text-gray-400">User ID: {user_id}</p>
                 <p className="text-gray-400">Role: {role}</p>
                 <p className="text-gray-400">Voter ID: {voter_id}</p>
+                <p className="text-gray-400">Location: {location}</p>
+                <p className="text-gray-400">Email: {email}</p>
+                <p className="text-gray-400">Date of Birth: {dob}</p>
+                <p className="text-gray-400">Gender: {gender}</p>
               </>
             )}
           </div>
@@ -58,12 +79,18 @@ export default function UserDashboard() {
           <div className="bg-gray-800 hover:bg-gray-700 transition-all rounded-lg p-6 flex-1">
             <h2 className="text-xl font-semibold">View Elections</h2>
             <p className="text-gray-400">Check elections in your area.</p>
-            <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">Go</Button>
+            <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">
+              Go
+            </Button>
           </div>
           <div className="bg-gray-800 hover:bg-gray-700 transition-all rounded-lg p-6 flex-1">
             <h2 className="text-xl font-semibold">View Results</h2>
-            <p className="text-gray-400">See past and current election results.</p>
-            <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">Go</Button>
+            <p className="text-gray-400">
+              See past and current election results.
+            </p>
+            <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">
+              Go
+            </Button>
           </div>
         </div>
 

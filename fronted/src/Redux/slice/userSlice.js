@@ -1,28 +1,19 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import baseApi from "../../api/baseApi";
 
-// Thunk to create an election
 export const fetchUserData = createAsyncThunk(
   "user/fetchUserData",
-  async (
-    {user_id,role,email,voter_id},
-    { rejectWithValue }
-  ) => {
+  async ({ email }, { rejectWithValue }) => { 
     try {
-      const response = await baseApi.post("public/dashboard.php", {
-        user_id,
-        role,
-        email,
-        voter_id
-      });
+      const response = await baseApi.post("public/dashboard.php", { email });
 
-      const data = response.data;
-      if (!data.success) {
-        throw new Error(data.message );
+      if (!response.data.success) {
+        throw new Error(response.data.message);
       }
-      return data;
+
+      return response.data.data;  
     } catch (error) {
-      return rejectWithValue(error.message );
+      return rejectWithValue(error.message);
     }
   }
 );
@@ -34,6 +25,7 @@ const userSlice = createSlice({
     role:"",
     email:"",
     voter_id:"",
+    location:"",
     isLoading: false,
     isError: false,
     errorMessage: "",
@@ -48,10 +40,15 @@ const userSlice = createSlice({
       })
       .addCase(fetchUserData.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user_id=action.payload.user_id
+        state.name=action.payload.user_info.name
+        state.user_id=action.payload.user_info.user_id
         state.role=action.payload.role
-        state.email=action.payload.email
-        state.voter_id=action.payload.voter_id
+        state.email=action.payload.user_info.email
+        state.dob=action.payload.user_info.dob
+        state.gender=action.payload.user_info.gender
+        state.location=action.payload.user_info.location
+        state.voter_id=action.payload.user_info.voter_id
+
       
       })
       .addCase(fetchUserData.rejected, (state, action) => {
