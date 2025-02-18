@@ -41,7 +41,7 @@ $elections = [];
 while ($election = $elections_result->fetch_assoc()) {
     $election_id = $election['election_id'];
 
-    $candidates_query = $conn->prepare("SELECT c.candidate_id, c.name, c.party, c.post_id
+    $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
                                         FROM candidates c
                                         JOIN elections e ON c.location_id = e.location_id AND c.ward = e.ward
                                         WHERE e.election_id = ?
