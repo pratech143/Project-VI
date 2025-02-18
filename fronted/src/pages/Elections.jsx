@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 
 export function Elections() {
   const dispatch = useDispatch();
+  const voter_id=localStorage.getItem("voterId")
 
   // Access elections data and loading state from the Redux store
   const { elections, isLoading, isError, errorMessage } = useSelector(state => state.election);
@@ -80,7 +81,7 @@ export function Elections() {
       </div>
 
       {/* If you want to trigger a refetch */}
-      <Button onClick={() => dispatch(fetchElections())} className="mt-4">
+      <Button onClick={() => dispatch(fetchElections({voter_id}))} className="mt-4">
         Refresh Elections
       </Button>
     </div>
