@@ -8,12 +8,19 @@ import { Search, Bell } from "lucide-react";
 export default function UserDashboard() {
   const dispatch = useDispatch();
 
+  // Retrieve the email from localStorage
+  const emailFromStorage = localStorage.getItem("email");
+
   // Fetch user data from Redux
-  const { user_id, role, email, voter_id, isLoading, isError } = useSelector((state) => state.user);
+  const { user_id, role, voter_id, isLoading, isError } = useSelector((state) => state.user);
 
   useEffect(() => {
-    dispatch(fetchUserData({ user_id, role, email, voter_id }));
-  }, [dispatch]);
+    if ( emailFromStorage) {
+      // Dispatch action with the email fetched from localStorage
+    const  data=dispatch(fetchUserData({ user_id, role, email: emailFromStorage, voter_id }));
+      console.log(data)
+    }
+  }, [ emailFromStorage]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [elections, setElections] = useState([
@@ -43,7 +50,7 @@ export default function UserDashboard() {
               <p className="text-red-500">Error loading user data</p>
             ) : (
               <>
-                <h1 className="text-3xl font-bold">Welcome, {email}!</h1>
+                <h1 className="text-3xl font-bold">Welcome, {emailFromStorage}!</h1>
                 <p className="text-gray-400">User ID: {user_id}</p>
                 <p className="text-gray-400">Role: {role}</p>
                 <p className="text-gray-400">Voter ID: {voter_id}</p>
@@ -83,11 +90,15 @@ export default function UserDashboard() {
             </div>
           </div>
           <ul className="space-y-2">
-            {filteredElections.map((election) => (
-              <li key={election.id} className="bg-gray-700 p-3 rounded-lg">
-                {election.name} - {election.date}
-              </li>
-            ))}
+            {filteredElections.length > 0 ? (
+              filteredElections.map((election) => (
+                <li key={election.id} className="bg-gray-700 p-3 rounded-lg">
+                  {election.name} - {election.date}
+                </li>
+              ))
+            ) : (
+              <p className="text-gray-400">No elections found.</p>
+            )}
           </ul>
         </div>
       </div>

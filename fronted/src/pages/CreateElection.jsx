@@ -5,10 +5,10 @@ import { Plus, AlertCircle, Lock } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { createElection, fetchLocations } from "../Redux/slice/electionSlice";
-
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Elections } from "./Elections";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
-import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select"; // Corrected import
+import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select";
 import { fetchLogin } from "@/Redux/slice/authSlice";
 
 export function CreateElection() {
@@ -30,7 +30,6 @@ export function CreateElection() {
   const [adminPassword, setAdminPassword] = useState("");
   const [electionData, setElectionData] = useState(null);
 
-  // New state for dynamic data
   const [districtData, setDistrictData] = useState({});
   const [locations, setLocations] = useState([]);
   const [wards, setWards] = useState([]);
@@ -54,12 +53,11 @@ export function CreateElection() {
 
   const { watch, setValue } = form;
 
-  // Fetching data on page load
   useEffect(() => {
     const fetchLocationData = async () => {
       try {
         const data = await dispatch(fetchLocations()).unwrap();
-        setDistrictData(data); // Storing data in state
+        setDistrictData(data);
       } catch (error) {
         console.error(error.message);
       }
@@ -105,29 +103,22 @@ export function CreateElection() {
 
   const handleConfirmCreate = async () => {
     try {
-      // Fetch the email from localStorage and perform login if necessary
       const email = localStorage.getItem("email");
       if (email && adminPassword) {
-        data=await dispatch(fetchLogin({ email, password: adminPassword })).unwrap();
-        error=data.message
+        await dispatch(fetchLogin({ email, password: adminPassword })).unwrap();
       }
-  
-      // Now attempt to create the election
+
       await dispatch(createElection(electionData)).unwrap();
-  
-      // On success, close the dialog, reset form and show success toast
       setOpen(false);
       setShowConfirmation(false);
       setAdminPassword("");
       form.reset();
       toast.success("Election created successfully!");
     } catch (error) {
-      // Handle failure: if login or election creation fails, show error
-      console.error("Error:", error); // Optionally log the error for debugging
-      toast.error(`Failed to create election: ${errorMessage || error.message || "invalid password"}`);
+      console.error("Error:", error);
+      toast.error(`Failed to create election: ${errorMessage || error.message || "Invalid password"}`);
     }
   };
-  
 
   const handleDistrictChange = (district) => {
     setSelectedDistrict(district);
@@ -145,22 +136,23 @@ export function CreateElection() {
     setValue("location_name", location);
     setValue("location_type", locationDetails?.location_type || "");
     setWards(Array.from({ length: locationDetails?.wards || 0 }, (_, i) => i + 1));
-    setValue("ward", ""); // Reset ward when location changes
+    setValue("ward", "");
   };
 
   const handleWardChange = (ward) => {
     setSelectedWards(ward);
-    setValue("ward", ward); // Update form state with ward selection
+    setValue("ward", ward);
   };
 
   useEffect(() => {
-    console.log(selectedWards); // Debug selected ward
+    console.log(selectedWards);
   }, [selectedWards]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Elections</h1>
+        <Elections/>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700">
@@ -220,18 +212,19 @@ export function CreateElection() {
 
                 <div className="grid gap-2">
                   <Label htmlFor="ward">Select Ward</Label>
-                  <Select id="ward" value={selectedWards} onValueChange={handleWardChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Ward" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {wards.map((ward) => (
-                        <SelectItem key={ward} value={ward}>
-                          {ward}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="ward"
+                    value={selectedWards}
+                    onChange={(e) => handleWardChange(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="" disabled>Select Ward</option>
+                    {wards.map((ward) => (
+                      <option key={ward} value={ward}>
+                        {ward}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {["name", "description"].map((field) => (

@@ -5,12 +5,23 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['voter_id'])) {
-    echo json_encode(["success" => false, "message" => "Unauthorized access"]);
+// if (!isset($_SESSION['voter_id'])) {
+//     echo json_encode(["success" => false, "message" => "Unauthorized access"]);
+//     exit;
+// }
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
 }
 
-$voter_id = $_SESSION['voter_id'];
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (!$data) {
+    echo json_encode(["success" => false, "message" => "Data not received"]);
+    exit;
+}
+$voter_id=$data['voter_id'] ?? null;
 
 $user_query = $conn->prepare("SELECT g.location_id, g.ward FROM users u 
                               JOIN government_voters g ON u.voter_id = g.voter_id
@@ -41,7 +52,7 @@ $elections = [];
 while ($election = $elections_result->fetch_assoc()) {
     $election_id = $election['election_id'];
 
-    $candidates_query = $conn->prepare("SELECT c.candidate_id, c.name, c.party, c.post_id
+    $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
                                         FROM candidates c
                                         JOIN elections e ON c.location_id = e.location_id AND c.ward = e.ward
                                         WHERE e.election_id = ?

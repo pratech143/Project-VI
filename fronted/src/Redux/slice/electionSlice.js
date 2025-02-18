@@ -52,9 +52,10 @@ export const fetchLocations = createAsyncThunk(
 // Thunk to fetch elections
 export const fetchElections = createAsyncThunk(
   "election/fetchElections",
-  async (_, { rejectWithValue }) => {
+  async ({voter_id}, { rejectWithValue }) => {
     try {
-      const response = await baseApi.get("function/fetch_election_details.php");
+      console.log(voter_id)
+      const response = await baseApi.post("function/fetch_election_details.php",{voter_id});
       const data = response.data;
       console.log(data)
       if (!data.success) {
@@ -75,6 +76,7 @@ const electionSlice = createSlice({
     isLoading: false,
     isError: false,
     errorMessage: "",
+    
   },
   reducers: {},
   extraReducers: (builder) => {

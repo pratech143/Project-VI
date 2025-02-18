@@ -48,11 +48,10 @@ const userSlice = createSlice({
       })
       .addCase(fetchUserData.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user_id=action.payload.user_id
-        state.role=action.payload.role
-        state.email=action.payload.email
-        state.voter_id=action.payload.voter_id
-      
+        state.user_id = action.payload.user_info.user_id || "";
+        state.role = action.payload.role || "";
+        state.email = action.payload.user_info.email || "";
+        state.voter_id = action.payload.user_info.voter_id || "";
       })
       .addCase(fetchUserData.rejected, (state, action) => {
         state.isLoading = false;

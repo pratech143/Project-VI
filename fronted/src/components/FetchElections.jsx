@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchElections } from '../Redux/slice/electionSlice';
 import { Button } from '../components/ui/button';
 
-export function Elections() {
+function FetchElections() {
   const dispatch = useDispatch();
 
   // Access elections data and loading state from the Redux store
@@ -11,11 +11,7 @@ export function Elections() {
 
   // Fetch elections when the component mounts
   useEffect(() => {
-    const voter_id = localStorage.getItem("voterId");
-    console.log(voter_id) // Get voter_id from localStorage
-    if (voter_id) {
-      dispatch(fetchElections({voter_id})); // Pass voter_id to fetchElections
-    }
+    dispatch(fetchElections());
   }, [dispatch]);
 
   // Render loading state, error state, or the elections list
@@ -83,3 +79,5 @@ export function Elections() {
     </div>
   );
 }
+
+export default FetchElections;
