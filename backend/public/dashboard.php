@@ -4,10 +4,10 @@ include '../config/handle_cors.php';
 
 session_start();
 
-// if (!isset($_SESSION['user_id'])) {
-//     echo json_encode(["success" => false]);
-//     exit;
-// }
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(["success" => false]);
+    exit;
+}
 
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
@@ -39,13 +39,13 @@ if ($role === 'admin') {
         "role" => $role,
         "options" => [
             "Manage Elections",
-            "Manage Candidates",
             "View Results"
         ]
     ];
 } else {
     $dashboard_data = [
         "user_info" => [
+            "user_id" => $user['user_id'],
             "voter_id" => $user['voter_id'],
             "name" => $user['name'],
             "dob" => $user['dob'],

@@ -117,7 +117,7 @@ while ($row = $candidate_votes_result->fetch_assoc()) {
 }
 
 $party_votes_query = "SELECT c.party_name, COUNT(v.vote_id) AS vote_count 
-FROM candidates c 
+FROM candidates c
 LEFT JOIN votes v ON c.candidate_id = v.candidate_id AND v.election_id = ?
 WHERE 1=1 $filter_sql
 GROUP BY c.party_name
