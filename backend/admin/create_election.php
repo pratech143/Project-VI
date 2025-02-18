@@ -114,7 +114,7 @@ foreach ($available_posts as $post_id) {
             if ($post_id == 4) $message .= "- Ward Member\n";
         }
 
-        $message .= "\nThank you for your participation in the democratic process.\nBest regards,\nElection Team";
+        $message .= "\nThank you for your participation in the democratic process.\nBest regards,\ne-मत Team";
 
         while ($email_row = $email_result->fetch_assoc()) {
             $to = $email_row['email'];

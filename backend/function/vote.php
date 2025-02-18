@@ -139,7 +139,7 @@ if (count($success_votes) > 0) {
     foreach ($success_votes as $vote) {
         $message .= "You have voted for the position of {$vote['post_name']}.\n";
     }
-    $message .= "\nThank you for participating in the democratic process.\n\nRegards,\nElection System Team";
+    $message .= "\nThank you for participating in the democratic process.\n\nRegards,\ne-मत Team";
 
     sendEmail($voter_email, $subject, nl2br($message));
 }

@@ -4,10 +4,24 @@ include '../config/handle_cors.php';
 
 session_start();
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["success" => false]);
+// if (!isset($_SESSION['user_id'])) {
+//     echo json_encode(["success" => false]);
+//     exit;
+// }
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
 }
+
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (!$data) {
+    echo json_encode(["success" => false, "message" => "Data not received"]);
+    exit;
+}
+
+$email = $data['email'] ?? null;
 
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
@@ -20,7 +34,7 @@ $user_query = $conn->prepare("
     FROM users u
     JOIN government_voters g ON u.voter_id = g.voter_id
     JOIN locations l ON g.location_id = l.location_id
-    WHERE u.user_id = ?
+    WHERE u.email = ?
 ");
 $user_query->bind_param("i", $user_id);
 $user_query->execute();
