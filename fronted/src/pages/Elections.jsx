@@ -12,24 +12,23 @@ export function Elections() {
   // Fetch elections when the component mounts
   useEffect(() => {
     const voter_id = localStorage.getItem("voterId");
-    console.log(voter_id) // Get voter_id from localStorage
     if (voter_id) {
-      dispatch(fetchElections({voter_id})); // Pass voter_id to fetchElections
+      dispatch(fetchElections({ voter_id })); // Pass voter_id to fetchElections
     }
   }, [dispatch]);
 
   // Render loading state, error state, or the elections list
   if (isLoading) {
-    return <div>Loading elections...</div>;
+    return <div className="text-white">Loading elections...</div>;
   }
 
   if (isError) {
-    return <div>Error: {errorMessage}</div>;
+    return <div className="text-white">Error: {errorMessage}</div>;
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Elections</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-white">
+      <h1 className="text-2xl font-bold mb-6">Elections</h1>
 
       {/* Displaying fetched elections */}
       <div className="space-y-4">
@@ -37,7 +36,7 @@ export function Elections() {
           elections.map((election) => (
             <div key={election.election_id} className="border p-4 rounded-md shadow-sm">
               <h2 className="text-xl font-semibold">{election.name}</h2>
-              <p className="text-sm text-gray-500">{election.description}</p>
+              <p className="text-sm text-gray-300">{election.description}</p>
               <div className="mt-2">
                 <strong>Location:</strong> {election.location}
               </div>
@@ -60,11 +59,15 @@ export function Elections() {
                   <div key={post}>
                     <h3 className="font-semibold">{post}</h3>
                     <ul>
-                      {election.candidates[post].map((candidate) => (
-                        <li key={candidate.candidate_id} className="pl-4">
-                          {candidate.name} - {candidate.party}
-                        </li>
-                      ))}
+                      {election.candidates[post].length > 0 ? (
+                        election.candidates[post].map((candidate) => (
+                          <li key={candidate.candidate_id} className="pl-4">
+                            {candidate.candidate_name} - {candidate.party_name}
+                          </li>
+                        ))
+                      ) : (
+                        <li>No candidates for this post</li>
+                      )}
                     </ul>
                   </div>
                 ))}

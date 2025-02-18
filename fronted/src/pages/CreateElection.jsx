@@ -107,15 +107,17 @@ export function CreateElection() {
       if (email && adminPassword) {
         await dispatch(fetchLogin({ email, password: adminPassword })).unwrap();
       }
+      console.log("done")
 
       await dispatch(createElection(electionData)).unwrap();
+      console.log("done")
       setOpen(false);
       setShowConfirmation(false);
       setAdminPassword("");
       form.reset();
       toast.success("Election created successfully!");
     } catch (error) {
-      console.error("Error:", error);
+      console.log("Error:", error);
       toast.error(`Failed to create election: ${errorMessage || error.message || "Invalid password"}`);
     }
   };
