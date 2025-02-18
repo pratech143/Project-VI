@@ -8,6 +8,9 @@ import { Search, Bell } from "lucide-react";
 export default function UserDashboard() {
   const dispatch = useDispatch();
 
+  // Retrieve the email from localStorage
+  const emailFromStorage = localStorage.getItem("email");
+
   // Fetch user data from Redux
   const {
     name,
@@ -110,11 +113,15 @@ export default function UserDashboard() {
             </div>
           </div>
           <ul className="space-y-2">
-            {filteredElections.map((election) => (
-              <li key={election.id} className="bg-gray-700 p-3 rounded-lg">
-                {election.name} - {election.date}
-              </li>
-            ))}
+            {filteredElections.length > 0 ? (
+              filteredElections.map((election) => (
+                <li key={election.id} className="bg-gray-700 p-3 rounded-lg">
+                  {election.name} - {election.date}
+                </li>
+              ))
+            ) : (
+              <p className="text-gray-400">No elections found.</p>
+            )}
           </ul>
         </div>
       </div>
