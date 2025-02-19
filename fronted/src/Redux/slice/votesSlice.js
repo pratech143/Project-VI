@@ -13,11 +13,11 @@ export const submitVotes = createAsyncThunk(
       });
       console.log(response)
 
-      if (!response.success) {
+      if (!response.data.success) {
         throw new Error(response.data.message);
       }
 
-      return response;  // Response will contain success or failure with details
+      return response.data;  // Response will contain success or failure with details
     } catch (error) {
       return rejectWithValue(error.message);
     }

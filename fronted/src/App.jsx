@@ -31,6 +31,14 @@ function App() {
 
           {/* Protected Routes */}
           <Route
+            path="elections"
+            element={
+              <ProtectedRoute allowedRoles={['voter']}>
+                <Elections />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="createelection"
             element={
               <ProtectedRoute allowedRoles={['admin']}>

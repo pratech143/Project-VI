@@ -30,6 +30,8 @@ export function Elections() {
   const [expandedPost, setExpandedPost] = useState(null);
   const role=localStorage.getItem("role")
 
+
+
   useEffect(() => {
     if (voterId) {
       dispatch(fetchElections({ voter_id: voterId }));

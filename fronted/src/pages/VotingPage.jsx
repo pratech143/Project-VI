@@ -3,16 +3,24 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchElections } from "../Redux/slice/electionSlice";
 import { submitVotes } from "../Redux/slice/votesSlice";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Vote, ChevronRight, ChevronLeft, AlertCircle, Check, User, MapPin, Calendar } from "lucide-react";
+import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const VotingPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  // Get voter ID from localStorage
   const voter_id = localStorage.getItem("voterId");
-  console.log("Voter ID:", voter_id);
 
-  // Get elections and votes state from Redux
   const {
     elections,
     isLoading: electionLoading,
@@ -27,118 +35,274 @@ const VotingPage = () => {
     successful_votes,
   } = useSelector((state) => state.votes);
 
-  // Local state to track selected candidates for each post
   const [selectedVotes, setSelectedVotes] = useState({});
+  const [currentPostIndex, setCurrentPostIndex] = useState(0);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [votingComplete, setVotingComplete] = useState(false);
 
-  // Fetch elections on mount
   useEffect(() => {
     if (voter_id) {
       dispatch(fetchElections({ voter_id }));
     }
   }, [dispatch, voter_id]);
 
-  // Handle candidate selection
+  useEffect(() => {
+    if (successful_votes && successful_votes.length > 0) {
+      navigate("/thank-you");
+    }
+  }, [successful_votes, navigate]);
+
+
+  
+
+  if (!elections || elections.length === 0 || !elections[0].candidates) {
+    return null;
+  }
+
+
+  const posts = Object.keys(elections[0].candidates);
+  const currentPost = posts[currentPostIndex];
+  const candidates = elections[0].candidates[currentPost];
+
   const handleSelectCandidate = (post, candidateId) => {
     setSelectedVotes((prev) => ({ ...prev, [post]: candidateId }));
   };
 
-  // Submit votes
-  const handleVoteSubmit = () => {
-    console.log("Selected Votes:", selectedVotes);
-
-    if (!elections || elections.length === 0) {
-      alert("No elections found.");
-      return;
+  const handleNext = () => {
+    if (currentPostIndex < posts.length - 1) {
+      setCurrentPostIndex(prev => prev + 1);
+    } else {
+      setVotingComplete(true);
+      setShowConfirmation(true);
     }
+  };
 
-    // Construct votes array
+  const handlePrevious = () => {
+    if (currentPostIndex > 0) {
+      setCurrentPostIndex(prev => prev - 1);
+    }
+  };
+
+  const handleVoteSubmit = () => {
+    console.log("Submitting Votes...", new Date().toISOString());
+    
+  
     const votes = Object.keys(selectedVotes).map((post) => {
       const post_id = elections[0].candidates[post][0]?.post_id || 0;
+      
       return {
         post_id,
         candidate_id: selectedVotes[post],
       };
     });
-
-    console.log("Votes Payload:", votes);
-    console.log("Election ID:", elections[0].election_id);
-    console.log("Voter ID:", voter_id);
-
-    // Dispatch vote submission
-    dispatch(submitVotes({ voter_id, election_id: elections[0].election_id, votes }));
+  
+    console.log("Votes to Submit:", votes,);
+    console.log(elections[0].election_id);
+    console.log(voter_id);
+    
+  
+    dispatch(submitVotes({ 
+      voter_id, 
+      election_id: elections[0].election_id, 
+      votes 
+    }));
+  };
+  
+  const getSelectedCandidateName = (post) => {
+    const candidateId = selectedVotes[post];
+    const candidate = elections[0].candidates[post].find(c => c.candidate_id === candidateId);
+    return candidate ? candidate.candidate_name : '';
   };
 
-  // Navigate to thank-you page if voting succeeded
-  useEffect(() => {
-    if (successful_votes && successful_votes.length > 0) {
-      alert("Your vote was successfully submitted!");
-      navigate("/thank-you");
-    }
-  }, [successful_votes, navigate]);
+  if (electionLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-600 font-medium">Loading election details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (electionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-red-50 p-6 rounded-lg border border-red-200 max-w-md">
+          <div className="flex items-center gap-3 text-red-600 mb-2">
+            <AlertCircle className="h-5 w-5" />
+            <h3 className="font-semibold">Error Loading Election</h3>
+          </div>
+          <p className="text-gray-600">{electionErrorMessage}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto bg-white shadow-md rounded-md p-6">
-        {electionLoading ? (
-          <p className="text-center text-gray-500">Loading elections...</p>
-        ) : electionError ? (
-          <p className="text-center text-red-500">{electionErrorMessage}</p>
-        ) : elections.length === 0 ? (
-          <p className="text-center text-gray-500">No elections found.</p>
-        ) : (
-          <>
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-800">{elections[0].name}</h1>
-              <p className="text-gray-600">{elections[0].description}</p>
-              <p className="text-gray-500">{elections[0].location} - Ward {elections[0].ward}</p>
-              <p className="text-gray-500">
-                Voting Period: {elections[0].start_date} to {elections[0].end_date}
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Election Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <Vote className="h-7 w-7 text-indigo-600" />
+                {elections[0].name}
+              </h1>
+              <p className="text-gray-600 mt-2">{elections[0].description}</p>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin className="h-4 w-4" />
+                  <span>{elections[0].location} - Ward {elections[0].ward}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {format(new Date(elections[0].start_date), 'PPP')} to{' '}
+                    {format(new Date(elections[0].end_date), 'PPP')}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-indigo-50 px-4 py-2 rounded-lg">
+              <p className="text-sm font-medium text-indigo-600">
+                Step {currentPostIndex + 1} of {posts.length}
               </p>
             </div>
+          </div>
+        </motion.div>
 
-            <div className="space-y-6">
-              {elections[0].candidates &&
-                Object.keys(elections[0].candidates).map((post) => (
-                  <div key={post} className="border p-4 rounded-md">
-                    <h2 className="text-xl font-semibold mb-2 text-gray-700">{post}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {elections[0].candidates[post].map((candidate) => (
-                        <label
-                          key={candidate.candidate_id}
-                          className="flex items-center p-2 border rounded-md cursor-pointer hover:bg-gray-50"
-                        >
-                          <input
-                            type="radio"
-                            name={post}
-                            value={candidate.candidate_id}
-                            className="mr-2"
-                            onChange={() =>
-                              handleSelectCandidate(post, candidate.candidate_id)
-                            }
-                            checked={selectedVotes[post] === candidate.candidate_id}
-                          />
-                          <span className="text-gray-800">{candidate.candidate_name}</span>
-                        </label>
-                      ))}
+        {/* Voting Section */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPost}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="bg-white rounded-xl shadow-lg p-8 border border-gray-100"
+          >
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              Select your candidate for {currentPost}
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {candidates.map((candidate) => (
+                <motion.div
+                  key={candidate.candidate_id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <label className="relative block cursor-pointer">
+                    <input
+                      type="radio"
+                      name={currentPost}
+                      value={candidate.candidate_id}
+                      onChange={() => handleSelectCandidate(currentPost, candidate.candidate_id)}
+                      checked={selectedVotes[currentPost] === candidate.candidate_id}
+                      className="sr-only"
+                    />
+                    <div className={`
+                      p-6 rounded-lg border-2 transition-all duration-200
+                      ${selectedVotes[currentPost] === candidate.candidate_id 
+                        ? 'border-indigo-600 bg-indigo-50' 
+                        : 'border-gray-200 hover:border-gray-300 bg-white'}
+                    `}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <User className="h-5 w-5 text-gray-500" />
+                            {candidate.candidate_name}
+                          </h3>
+                          <p className="text-gray-600 mt-1">{candidate.party_name}</p>
+                        </div>
+                        {selectedVotes[currentPost] === candidate.candidate_id && (
+                          <div className="bg-indigo-600 text-white p-1 rounded-full">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  </label>
+                </motion.div>
+              ))}
             </div>
 
-            <div className="mt-8 text-center">
-              <button
+            <div className="mt-8 flex justify-between">
+              <Button
+                onClick={handlePrevious}
+                disabled={currentPostIndex === 0}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={!selectedVotes[currentPost]}
+                className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
+              >
+                {currentPostIndex === posts.length - 1 ? 'Review Votes' : 'Next'}
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Confirmation Dialog */}
+        <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Vote className="h-5 w-5 text-indigo-600" />
+                Confirm Your Votes
+              </DialogTitle>
+              <DialogDescription>
+                Please review your selections before submitting your vote.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-4 space-y-4">
+              {posts.map((post) => (
+                <div key={post} className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900">{post}</h4>
+                  <p className="text-indigo-600 mt-1">{getSelectedCandidateName(post)}</p>
+                </div>
+              ))}
+            </div>
+
+            <DialogFooter className="mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmation(false)}
+                className="mr-2"
+              >
+                Review Choices
+              </Button>
+              <Button
                 onClick={handleVoteSubmit}
                 disabled={voteLoading}
-                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-700"
               >
-                {voteLoading ? "Submitting..." : "Submit Vote"}
-              </button>
-            </div>
+                {voteLoading ? "Submitting..." : "Confirm & Submit Vote"}
+              </Button>
+            </DialogFooter>
+
             {voteError && (
-              <p className="mt-4 text-center text-red-500">{voteErrorMessage}</p>
+              <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                <div className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <p className="text-sm font-medium">{voteErrorMessage}</p>
+                </div>
+              </div>
             )}
-          </>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
