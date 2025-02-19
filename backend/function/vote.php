@@ -34,6 +34,15 @@ $voter_check = $conn->prepare("
     WHERE u.voter_id = ?
 ");
 
+$voter_check->bind_param("s", $voter_id);
+$voter_check->execute();
+$voter_result = $voter_check->get_result();
+
+if ($voter_result->num_rows === 0) {
+    echo json_encode(["success" => false, "message" => "Voter not found"]);
+    exit;
+}
+
 $email_query = $conn->prepare("SELECT email FROM users WHERE voter_id = ?");
 $email_query->bind_param("s", $voter_id);
 $email_query->execute();
@@ -46,10 +55,6 @@ if ($email_result->num_rows === 0) {
 
 $voter_email = $email_result->fetch_assoc()['email'];
 
-if ($voter_result->num_rows === 0) {
-    echo json_encode(["success" => false, "message" => "Voter not found"]);
-    exit;
-}
 
 // Check if election is active
 $election_check = $conn->prepare("
@@ -136,6 +141,16 @@ try {
     exit;
 }
 
+foreach ($success_votes as &$vote) {
+    $post_id = $vote['post_id'];
+    $post_query = $conn->prepare("SELECT post_name FROM posts WHERE post_id = ?");
+    $post_query->bind_param("i", $post_id);
+    $post_query->execute();
+    $post_result = $post_query->get_result();
+    
+    $vote['post_name'] = ($post_result->num_rows > 0) ? $post_result->fetch_assoc()['post_name'] : "Unknown Position";
+}
+
 $election_name = $election_data['name'];
 
 if (count($success_votes) > 0) {
@@ -146,13 +161,13 @@ if (count($success_votes) > 0) {
 
     $subject = "Vote Confirmation - $election_name";
     
-    $message = "Dear Voter,\n\nYou have successfully voted in the '+-' election.\n\n";
+    $message = "Dear Voter,\n\nYou have successfully voted in the $election_name election.\n\n";
     foreach ($success_votes as $vote) {
         $message .= "You have voted for the position of {$vote['post_name']}.\n";
     }
     $message .= "\nThank you for participating in the democratic process.\n\nRegards,\ne-मत Team";
 
-    sendEmail($voter_email, $subject, nl2br($message));
+    sendEmail($voter_email, $subject, $message);
 }
 
 echo json_encode([
