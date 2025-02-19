@@ -6,10 +6,10 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
-    echo json_encode(["success" => false, "message" => "Unauthorized access."]);
-    exit;
-}
+// if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
+//     echo json_encode(["success" => false, "message" => "Unauthorized access."]);
+//     exit;
+// }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Use POST."]);
@@ -135,7 +135,7 @@ try {
 if (count($success_votes) > 0) {
     $subject = "Vote Confirmation - $election_name";
     
-    $message = "Dear Voter,\n\nYou have successfully voted in the '$election_name' election.\n\n";
+    $message = "Dear Voter,\n\nYou have successfully voted in the '+-' election.\n\n";
     foreach ($success_votes as $vote) {
         $message .= "You have voted for the position of {$vote['post_name']}.\n";
     }
