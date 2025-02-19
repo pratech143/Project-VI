@@ -13,6 +13,7 @@ export function Elections() {
   const voter_id = localStorage.getItem("voterId");
   const { elections, isLoading, isError, errorMessage } = useSelector(state => state.election);
   const [expandedPost, setExpandedPost] = useState(null);
+  const role=localStorage.getItem("role")
 
   useEffect(() => {
     if (voter_id) {
@@ -96,9 +97,11 @@ export function Elections() {
                     </div>
                   </CardContent>
                   <CardFooter className="border-t border-gray-700 pt-4 flex justify-between">
-                  <Link to="/votingpage"><Button className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center" disabled={election.status.toLowerCase() !== 'ongoing'}>
-                    <Vote className="w-4 h-4 mr-2" /> Cast Vote
-                    </Button></Link>
+                {(role==="voter")&&
+                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center" disabled={election.status.toLowerCase() !== 'ongoing'}>
+                  <Link to="/votingpage">  <Vote className="w-4 h-4 mr-2" /> Cast Vote</Link>
+                      </Button>
+                }
                     <span className="text-sm text-gray-400">
                       {election.status.toLowerCase() === 'ongoing' ? 'Voting is open' : election.status.toLowerCase() === 'upcoming' ? 'Coming soon' : 'Voting ended'}
                     </span>

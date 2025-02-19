@@ -1,116 +1,147 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { toast } from 'react-hot-toast';
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchElections } from "../Redux/slice/electionSlice";
+import { submitVotes } from "../Redux/slice/votesSlice";
+import { useNavigate } from "react-router-dom";
 
-const electionData = {
-  name: 'Mayoral Election 2024',
-  description: 'Vote for the next mayor of your city.',
-  posts: [
-    {
-      name: 'Mayor',
-      candidates: [
-        { id: 1, name: 'Alice Johnson', party: 'Democratic', votes: 0 },
-        { id: 2, name: 'Bob Smith', party: 'Republican', votes: 0 },
-        { id: 3, name: 'Charlie Lee', party: 'Independent', votes: 0 },
-        { id: 4, name: 'Daisy Wright', party: 'Green Party', votes: 0 },
-        { id: 5, name: 'Ethan Brown', party: 'Libertarian', votes: 0 },
-      ],
-    },
-    {
-      name: 'Vice Mayor',
-      candidates: [
-        { id: 6, name: 'Fiona Adams', party: 'Democratic', votes: 0 },
-        { id: 7, name: 'George Carter', party: 'Republican', votes: 0 },
-        { id: 8, name: 'Hannah White', party: 'Independent', votes: 0 },
-        { id: 9, name: 'Ian Moore', party: 'Green Party', votes: 0 },
-        { id: 10, name: 'Jack Wilson', party: 'Libertarian', votes: 0 },
-      ],
-    },
-  ],
-};
+const VotingPage = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-export default function VotingPage() {
-  const [currentPostIndex, setCurrentPostIndex] = useState(0);
+  // Get voter ID from localStorage
+  const voter_id = localStorage.getItem("voterId");
+  console.log("Voter ID:", voter_id);
+
+  // Get elections and votes state from Redux
+  const {
+    elections,
+    isLoading: electionLoading,
+    isError: electionError,
+    errorMessage: electionErrorMessage,
+  } = useSelector((state) => state.election);
+
+  const {
+    isLoading: voteLoading,
+    isError: voteError,
+    errorMessage: voteErrorMessage,
+    successful_votes,
+  } = useSelector((state) => state.votes);
+
+  // Local state to track selected candidates for each post
   const [selectedVotes, setSelectedVotes] = useState({});
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [password, setPassword] = useState('');
 
-  const currentPost = electionData.posts[currentPostIndex];
-
-  const handleVote = (candidateId) => {
-    setSelectedVotes({ ...selectedVotes, [currentPost.name]: candidateId });
-  };
-
-  const handleNext = () => {
-    if (currentPostIndex < electionData.posts.length - 1) {
-      setCurrentPostIndex(currentPostIndex + 1);
-    } else {
-      setIsConfirmModalOpen(true);
+  // Fetch elections on mount
+  useEffect(() => {
+    if (voter_id) {
+      dispatch(fetchElections({ voter_id }));
     }
+  }, [dispatch, voter_id]);
+
+  // Handle candidate selection
+  const handleSelectCandidate = (post, candidateId) => {
+    setSelectedVotes((prev) => ({ ...prev, [post]: candidateId }));
   };
 
-  const handleConfirmVote = () => {
-    if (!password) {
-      toast.error('Please enter your password to confirm your vote.');
+  // Submit votes
+  const handleVoteSubmit = () => {
+    console.log("Selected Votes:", selectedVotes);
+
+    if (!elections || elections.length === 0) {
+      alert("No elections found.");
       return;
     }
-    toast.success('Your vote has been successfully submitted!');
-    setIsConfirmModalOpen(false);
+
+    // Construct votes array
+    const votes = Object.keys(selectedVotes).map((post) => {
+      const post_id = elections[0].candidates[post][0]?.post_id || 0;
+      return {
+        post_id,
+        candidate_id: selectedVotes[post],
+      };
+    });
+
+    console.log("Votes Payload:", votes);
+    console.log("Election ID:", elections[0].election_id);
+    console.log("Voter ID:", voter_id);
+
+    // Dispatch vote submission
+    dispatch(submitVotes({ voter_id, election_id: elections[0].election_id, votes }));
   };
 
+  // Navigate to thank-you page if voting succeeded
+  useEffect(() => {
+    if (successful_votes && successful_votes.length > 0) {
+      alert("Your vote was successfully submitted!");
+      navigate("/thank-you");
+    }
+  }, [successful_votes, navigate]);
+
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white shadow rounded-lg">
-      <h1 className="text-2xl font-bold text-gray-900">{electionData.name}</h1>
-      <p className="text-gray-600 mb-4">{electionData.description}</p>
-      
-      <h2 className="text-xl font-semibold text-gray-800">Vote for {currentPost.name}</h2>
-      <div className="mt-4 space-y-2">
-        {currentPost.candidates.map((candidate) => (
-          <button
-            key={candidate.id}
-            className={`block w-full text-left p-3 rounded-lg border transition ${selectedVotes[currentPost.name] === candidate.id ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-            onClick={() => handleVote(candidate.id)}
-          >
-            {candidate.name} ({candidate.party})
-          </button>
-        ))}
-      </div>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-4xl mx-auto bg-white shadow-md rounded-md p-6">
+        {electionLoading ? (
+          <p className="text-center text-gray-500">Loading elections...</p>
+        ) : electionError ? (
+          <p className="text-center text-red-500">{electionErrorMessage}</p>
+        ) : elections.length === 0 ? (
+          <p className="text-center text-gray-500">No elections found.</p>
+        ) : (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-800">{elections[0].name}</h1>
+              <p className="text-gray-600">{elections[0].description}</p>
+              <p className="text-gray-500">{elections[0].location} - Ward {elections[0].ward}</p>
+              <p className="text-gray-500">
+                Voting Period: {elections[0].start_date} to {elections[0].end_date}
+              </p>
+            </div>
 
-      <div className="flex justify-end mt-6">
-        <Button onClick={handleNext} disabled={!selectedVotes[currentPost.name]}>
-          {currentPostIndex < electionData.posts.length - 1 ? 'Next' : 'Review & Submit'}
-        </Button>
-      </div>
+            <div className="space-y-6">
+              {elections[0].candidates &&
+                Object.keys(elections[0].candidates).map((post) => (
+                  <div key={post} className="border p-4 rounded-md">
+                    <h2 className="text-xl font-semibold mb-2 text-gray-700">{post}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {elections[0].candidates[post].map((candidate) => (
+                        <label
+                          key={candidate.candidate_id}
+                          className="flex items-center p-2 border rounded-md cursor-pointer hover:bg-gray-50"
+                        >
+                          <input
+                            type="radio"
+                            name={post}
+                            value={candidate.candidate_id}
+                            className="mr-2"
+                            onChange={() =>
+                              handleSelectCandidate(post, candidate.candidate_id)
+                            }
+                            checked={selectedVotes[post] === candidate.candidate_id}
+                          />
+                          <span className="text-gray-800">{candidate.candidate_name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
 
-      {/* Confirmation Modal */}
-      <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Your Vote</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {Object.entries(selectedVotes).map(([post, candidateId]) => {
-              const candidate = electionData.posts.find(p => p.name === post).candidates.find(c => c.id === candidateId);
-              return (
-                <p key={post} className="text-gray-700">
-                  <strong>{post}:</strong> {candidate.name} ({candidate.party})
-                </p>
-              );
-            })}
-            <Input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button onClick={handleConfirmVote}>Submit Vote</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div className="mt-8 text-center">
+              <button
+                onClick={handleVoteSubmit}
+                disabled={voteLoading}
+                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                {voteLoading ? "Submitting..." : "Submit Vote"}
+              </button>
+            </div>
+            {voteError && (
+              <p className="mt-4 text-center text-red-500">{voteErrorMessage}</p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default VotingPage;
