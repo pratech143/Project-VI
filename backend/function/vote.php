@@ -33,9 +33,18 @@ $voter_check = $conn->prepare("
     JOIN users u ON g.voter_id = u.voter_id
     WHERE u.voter_id = ?
 ");
-$voter_check->bind_param("s", $voter_id);
-$voter_check->execute();
-$voter_result = $voter_check->get_result();
+
+$email_query = $conn->prepare("SELECT email FROM users WHERE voter_id = ?");
+$email_query->bind_param("s", $voter_id);
+$email_query->execute();
+$email_result = $email_query->get_result();
+
+if ($email_result->num_rows === 0) {
+    echo json_encode(["success" => false, "message" => "Voter email not found"]);
+    exit;
+}
+
+$voter_email = $email_result->fetch_assoc()['email'];
 
 if ($voter_result->num_rows === 0) {
     echo json_encode(["success" => false, "message" => "Voter not found"]);
@@ -149,7 +158,7 @@ if (count($success_votes) > 0) {
 echo json_encode([
     "success" => true,
     "message" => "Voting process completed",
-    "is_voted" => 1,
+    "is_voted" => 1, // Send this to frontend
     "successful_votes" => $success_votes,
     "failed_votes" => $failed_votes
 ]);
