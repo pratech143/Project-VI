@@ -49,19 +49,25 @@ export const fetchLocations = createAsyncThunk(
   }
 );
 
-// Thunk to fetch elections
+// Thunk to fetch elections for a specific voter
 export const fetchElections = createAsyncThunk(
   "election/fetchElections",
-  async ({voter_id}, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      console.log(voter_id)
-      const response = await baseApi.post("function/fetch_election_details.php",{voter_id});
+      // Get voter_id from localStorage (or session-based authentication if implemented)
+      const voter_id = localStorage.getItem("voterId");
+
+      // Prepare request payload: If voter_id exists, send it; otherwise, fetch all elections
+      const requestData = voter_id ? { voter_id } : {}; 
+
+      const response = await baseApi.post("function/fetch_election_details.php", requestData);
       const data = response.data;
-      console.log(data)
+
       if (!data.success) {
         throw new Error(data.message || "Failed to fetch elections!");
       }
-      return data.elections; // Change to "elections" from "locations"
+
+      return data.elections;
     } catch (error) {
       return rejectWithValue(error.message || "An error occurred while fetching elections");
     }
@@ -76,7 +82,6 @@ const electionSlice = createSlice({
     isLoading: false,
     isError: false,
     errorMessage: "",
-    
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -87,15 +92,15 @@ const electionSlice = createSlice({
         state.isError = false;
         state.errorMessage = "";
       })
-      .addCase(createElection.fulfilled, (state, action) => {
+      .addCase(createElection.fulfilled, (state) => {
         state.isLoading = false;
-        // Add any data you want to store when creating an election (if necessary)
       })
       .addCase(createElection.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.errorMessage = action.payload || "An error occurred";
       })
+
       // Fetching Locations
       .addCase(fetchLocations.pending, (state) => {
         state.isLoading = true;
@@ -109,6 +114,7 @@ const electionSlice = createSlice({
         state.isError = true;
         state.errorMessage = action.payload || "Failed to fetch locations";
       })
+
       // Fetching Elections
       .addCase(fetchElections.pending, (state) => {
         state.isLoading = true;

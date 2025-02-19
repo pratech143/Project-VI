@@ -1,15 +1,9 @@
 <?php
-session_start();
 include '../config/database.php';
 include '../config/mail_config.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
-
-// if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
-//     echo json_encode(["success" => false, "message" => "Unauthorized access."]);
-//     exit;
-// }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Use POST."]);
@@ -32,6 +26,7 @@ if (empty($voter_id) || empty($election_id) || !is_array($votes) || count($votes
     exit;
 }
 
+// Validate that the voter exists
 $voter_check = $conn->prepare("
     SELECT g.voter_id 
     FROM government_voters g

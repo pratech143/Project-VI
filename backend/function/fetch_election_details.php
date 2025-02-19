@@ -21,9 +21,10 @@ if (!$data) {
     echo json_encode(["success" => false, "message" => "Data not received"]);
     exit;
 }
-$voter_id=$data['voter_id'] ?? null;
 
-$user_query = $conn->prepare("SELECT g.location_id, g.ward FROM users u 
+$voter_id = $data['voter_id'] ?? null;
+
+$user_query = $conn->prepare("SELECT u.role, g.location_id, g.ward FROM users u 
                               JOIN government_voters g ON u.voter_id = g.voter_id
                               WHERE u.voter_id = ?");
 $user_query->bind_param("s", $voter_id);
@@ -36,14 +37,24 @@ if ($user_result->num_rows === 0) {
 }
 
 $user_data = $user_result->fetch_assoc();
+$role = $user_data['role'];
 $location_id = $user_data['location_id'];
 $ward = $user_data['ward'];
 
-$elections_query = $conn->prepare("SELECT e.election_id, e.name, e.description, e.ward, e.start_date, e.end_date, e.status, l.location_name, l.district_name
-                                   FROM elections e
-                                   JOIN locations l ON e.location_id = l.location_id
-                                   WHERE e.location_id = ? AND (e.ward = 0 OR e.ward = ?)");
-$elections_query->bind_param("ii", $location_id, $ward);
+if ($role === 1) {
+    $elections_query = $conn->prepare("SELECT e.election_id, e.name, e.description, e.ward, e.start_date, e.end_date, e.status, 
+                                              l.location_name, l.district_name
+                                       FROM elections e
+                                       JOIN locations l ON e.location_id = l.location_id");
+} else {
+    $elections_query = $conn->prepare("SELECT e.election_id, e.name, e.description, e.ward, e.start_date, e.end_date, e.status, 
+                                              l.location_name, l.district_name
+                                       FROM elections e
+                                       JOIN locations l ON e.location_id = l.location_id
+                                       WHERE e.location_id = ? AND (e.ward = 0 OR e.ward = ?)");
+    $elections_query->bind_param("ii", $location_id, $ward);
+}
+
 $elections_query->execute();
 $elections_result = $elections_query->get_result();
 
@@ -52,11 +63,18 @@ $elections = [];
 while ($election = $elections_result->fetch_assoc()) {
     $election_id = $election['election_id'];
 
-    $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
-                                        FROM candidates c
-                                        WHERE c.location_id = ? AND (c.ward = 0 OR c.ward = ?)
-                                        ORDER BY c.post_id ASC");
-    $candidates_query->bind_param("ii", $location_id, $ward);
+    if ($role === 1) {
+        $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
+                                            FROM candidates c
+                                            ORDER BY c.post_id ASC");
+    } else {
+        $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
+                                            FROM candidates c
+                                            WHERE c.location_id = ? AND (c.ward = 0 OR c.ward = ?)
+                                            ORDER BY c.post_id ASC");
+        $candidates_query->bind_param("ii", $location_id, $ward);
+    }
+
     $candidates_query->execute();
     $candidates_result = $candidates_query->get_result();
 
