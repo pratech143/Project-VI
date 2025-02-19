@@ -5,13 +5,21 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_GET['election_id']) || empty($_GET['election_id'])) {
-    echo json_encode(["success" => false, "message" => "Missing election ID"]);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
 }
 
-$election_id = intval($_GET['election_id']);
+$data = json_decode(file_get_contents('php://input'), true);
 
+if (!$data || !isset($data['election_id']) || empty($data['election_id'])) {
+    echo json_encode(["success" => false, "message" => "Missing or invalid election ID"]);
+    exit;
+}
+
+$election_id = intval($data['election_id']);
+
+// Check if the election exists and is ongoing
 $election_check = $conn->prepare("
     SELECT status FROM elections WHERE election_id = ?
 ");
@@ -30,8 +38,15 @@ if ($election['status'] !== 'Ongoing') {
     exit;
 }
 
+// Fetch live election results
 $query = "
-    SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id, p.post_name, COUNT(v.vote_id) AS vote_count
+    SELECT 
+        c.candidate_id, 
+        c.candidate_name, 
+        c.party_name, 
+        c.post_id, 
+        p.post_name, 
+        COUNT(v.vote_id) AS vote_count
     FROM candidates c
     LEFT JOIN votes v ON c.candidate_id = v.candidate_id AND v.election_id = ?
     JOIN posts p ON c.post_id = p.post_id
@@ -58,7 +73,7 @@ while ($row = $result->fetch_assoc()) {
         "candidate_id" => $row['candidate_id'],
         "candidate_name" => $row['candidate_name'],
         "party_name" => $row['party_name'],
-        "vote_count" => $row['vote_count']
+        "vote_count" => intval($row['vote_count'])
     ];
 }
 
