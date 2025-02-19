@@ -66,7 +66,9 @@ while ($election = $elections_result->fetch_assoc()) {
     if ($role === 1) {
         $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
                                             FROM candidates c
+                                            WHERE c.location_id = ? AND (c.ward = 0 OR c.ward = ?)
                                             ORDER BY c.post_id ASC");
+        $candidates_query->bind_param("ii", $location_id, $election['ward']); 
     } else {
         $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
                                             FROM candidates c
