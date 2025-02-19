@@ -71,20 +71,17 @@ const ElectionResults = () => {
 
             {/* Post Selection (Results Navigation) */}
             <div className="flex space-x-4 mb-6 overflow-x-auto pb-2">
-              {Object.keys(selectedElection.results).map((key) => {
-                const result = selectedElection.results[key];
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedResult(result)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                      selectedResult === result ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              {Object.values(selectedElection.results).map((result) => (
+                <button
+                  key={result.post_name} // ✅ Ensuring a unique key
+                  onClick={() => setSelectedResult(result)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedResult === result ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
-                  >
-                    {result.name} {/* Assuming each result has a 'name' */}
-                  </button>
-                );
-              })}
+                >
+                  {result.post_name} {/* ✅ Use `post_name` instead of `name` */}
+                </button>
+              ))}
+
             </div>
 
             {/* Top Candidates Section */}
@@ -94,25 +91,19 @@ const ElectionResults = () => {
                 Leading Candidates
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
-                {selectedResult.candidates.slice(0, 2).map((candidate, index) => (
-                  <div key={candidate.id} className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderLeftColor: candidate.color }}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{candidate.name}</h3>
-                        <p className="text-sm text-gray-500">{candidate.party}</p>
-                        <div className="mt-2">
-                          <span className="text-2xl font-bold text-gray-900">{candidate.votes}</span>
-                          <span className="text-sm text-gray-500 ml-1">votes</span>
-                        </div>
-                      </div>
-                      {index <= 1 && (
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100">
-                          <Trophy className={`w-6 h-6 ${index === 0 ? 'text-yellow-500' : 'text-gray-400'}`} />
-                        </div>
-                      )}
+                {selectedResult.candidates.slice(0, 2).map((candidate) => (
+                  <div key={candidate.candidate_id}  // ✅ Ensuring a unique key
+                    className="bg-white rounded-lg shadow-md p-6 border-l-4"
+                    style={{ borderLeftColor: candidate.color }}>
+                    <h3 className="text-lg font-semibold text-gray-900">{candidate.candidate_name}</h3>
+                    <p className="text-sm text-gray-500">{candidate.party_name}</p>
+                    <div className="mt-2">
+                      <span className="text-2xl font-bold text-gray-900">{candidate.vote_count}</span>
+                      <span className="text-sm text-gray-500 ml-1">votes</span>
                     </div>
                   </div>
                 ))}
+
               </div>
             </div>
           </div>
@@ -125,13 +116,12 @@ const ElectionResults = () => {
             <div className="space-y-4">
               {elections.map((election) => (
                 <button
-                  key={election.election_id}
+                  key={election.election_name}
                   onClick={() => setSelectedElection(election)}
-                  className={`w-full text-left p-4 rounded-lg transition-colors ${
-                    selectedElection.election_id === election.election_id
-                      ? 'bg-indigo-50 border border-indigo-200'
-                      : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                  }`}
+                  className={`w-full text-left p-4 rounded-lg transition-colors ${selectedElection.election_id === election.election_id
+                    ? 'bg-indigo-50 border border-indigo-200'
+                    : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                    }`}
                 >
                   <div className="flex justify-between items-center">
                     <div>

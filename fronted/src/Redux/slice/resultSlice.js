@@ -9,12 +9,12 @@ export const fetchElectionResults = createAsyncThunk(
       const response = await baseApi.post('function/live_results.php', {
         
       });
-      console.log(response.data)
+      
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to fetch election results');
       }
-      
-      return response.data;
+      console.log(response.data.elections)
+      return response.data.elections;
       
     } catch (error) {
       return rejectWithValue(error.message || 'An error occurred while fetching election results');
@@ -39,7 +39,7 @@ const resultSlice = createSlice({
       })
       .addCase(fetchElectionResults.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.data = action.payload; 
+        state.elections = action.payload; 
       })
       .addCase(fetchElectionResults.rejected, (state, action) => {
         state.isLoading = false;
