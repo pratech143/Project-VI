@@ -5,62 +5,74 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_GET['election_id']) || empty($_GET['election_id'])) {
-    echo json_encode(["success" => false, "message" => "Missing election ID"]);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
 }
 
-$election_id = intval($_GET['election_id']);
-
-$election_check = $conn->prepare("
-    SELECT status FROM elections WHERE election_id = ?x
+$election_query = $conn->prepare("
+    SELECT election_id, name FROM elections WHERE status = 'Ongoing'
 ");
-$election_check->bind_param("i", $election_id);
-$election_check->execute();
-$election_result = $election_check->get_result();
+$election_query->execute();
+$election_result = $election_query->get_result();
 
 if ($election_result->num_rows === 0) {
-    echo json_encode(["success" => false, "message" => "Election not found"]);
+    echo json_encode(["success" => false, "message" => "No ongoing elections found"]);
     exit;
 }
 
-$election = $election_result->fetch_assoc();
-if ($election['status'] !== 'Ongoing') {
-    echo json_encode(["success" => false, "message" => "Live results are only available for ongoing elections"]);
-    exit;
+$ongoing_elections = [];
+while ($row = $election_result->fetch_assoc()) {
+    $ongoing_elections[$row['election_id']] = [
+        "election_id" => $row['election_id'],
+        "election_name" => $row['name'],
+        "results" => []
+    ];
 }
 
 $query = "
-    SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id, p.post_name, COUNT(v.vote_id) AS vote_count
-    FROM candidates c
-    LEFT JOIN votes v ON c.candidate_id = v.candidate_id AND v.election_id = ?
+    SELECT 
+        e.election_id,
+        e.name AS election_name,
+        c.candidate_id, 
+        c.candidate_name, 
+        c.party_name, 
+        c.post_id, 
+        p.post_name, 
+        COUNT(v.vote_id) AS vote_count
+    FROM elections e
+    JOIN candidates c ON c.location_id = e.location_id
     JOIN posts p ON c.post_id = p.post_id
-    WHERE c.location_id = (SELECT location_id FROM elections WHERE election_id = ?)
-    GROUP BY c.candidate_id, c.candidate_name, c.party_name, c.post_id, p.post_name
-    ORDER BY c.post_id, vote_count DESC
+    LEFT JOIN votes v ON c.candidate_id = v.candidate_id AND v.election_id = e.election_id
+    WHERE e.status = 'Ongoing'
+    GROUP BY e.election_id, c.candidate_id, c.candidate_name, c.party_name, c.post_id, p.post_name
+    ORDER BY e.election_id, c.post_id, vote_count DESC
 ";
 
 $stmt = $conn->prepare($query);
-$stmt->bind_param("ii", $election_id, $election_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-$live_results = [];
 while ($row = $result->fetch_assoc()) {
+    $election_id = $row['election_id'];
     $post_id = $row['post_id'];
-    if (!isset($live_results[$post_id])) {
-        $live_results[$post_id] = [
+
+    if (!isset($ongoing_elections[$election_id]['results'][$post_id])) {
+        $ongoing_elections[$election_id]['results'][$post_id] = [
             "post_name" => $row['post_name'],
             "candidates" => []
         ];
     }
-    $live_results[$post_id]['candidates'][] = [
+
+    $ongoing_elections[$election_id]['results'][$post_id]['candidates'][] = [
         "candidate_id" => $row['candidate_id'],
         "candidate_name" => $row['candidate_name'],
         "party_name" => $row['party_name'],
-        "vote_count" => $row['vote_count']
+        "vote_count" => intval($row['vote_count'])
     ];
 }
 
-echo json_encode(["success" => true, "live_results" => array_values($live_results)]);
+$final_results = array_values($ongoing_elections);
+
+echo json_encode(["success" => true, "elections" => $final_results]);
 ?>
