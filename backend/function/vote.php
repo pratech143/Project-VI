@@ -44,7 +44,7 @@ if ($voter_result->num_rows === 0) {
 
 // Check if election is active
 $election_check = $conn->prepare("
-    SELECT election_id, start_date, end_date, status 
+    SELECT election_id, name, start_date, end_date, status 
     FROM elections 
     WHERE election_id = ?
 ");
@@ -127,7 +127,14 @@ try {
     exit;
 }
 
+$election_name = $election_data['name'];
+
 if (count($success_votes) > 0) {
+
+    $update_voted = $conn->prepare("UPDATE users SET is_voted = 1 WHERE voter_id = ?");
+    $update_voted->bind_param("s", $voter_id);
+    $update_voted->execute();
+
     $subject = "Vote Confirmation - $election_name";
     
     $message = "Dear Voter,\n\nYou have successfully voted in the '+-' election.\n\n";
@@ -140,8 +147,9 @@ if (count($success_votes) > 0) {
 }
 
 echo json_encode([
-    "success" => count($success_votes) > 0,
+    "success" => true,
     "message" => "Voting process completed",
+    "is_voted" => 1,
     "successful_votes" => $success_votes,
     "failed_votes" => $failed_votes
 ]);
