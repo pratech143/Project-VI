@@ -4,16 +4,18 @@ import baseApi from '../../api/baseApi';  // Assuming your API base setup is alr
 // Async thunk for fetching election results
 export const fetchElectionResults = createAsyncThunk(
   'results/fetchElectionResults',
-  async (voter_id, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
       const response = await baseApi.post('function/live_results.php', {
-        voter_id,
+        
       });
       console.log(response.data)
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to fetch election results');
       }
-      return response.data.elections;
+      
+      return response.data;
+      
     } catch (error) {
       return rejectWithValue(error.message || 'An error occurred while fetching election results');
     }
@@ -37,7 +39,7 @@ const resultSlice = createSlice({
       })
       .addCase(fetchElectionResults.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.elections = action.payload; 
+        state.data = action.payload; 
       })
       .addCase(fetchElectionResults.rejected, (state, action) => {
         state.isLoading = false;

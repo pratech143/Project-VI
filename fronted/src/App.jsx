@@ -9,7 +9,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AuthPage } from './pages/AuthPage';
 import OTP from './pages/OTP';
 import { CreateElection } from './pages/CreateElection';
-import { ElectionResults } from './pages/electionResults';
+import  ElectionResults  from './pages/electionResults';
 import VotingPage from './pages/VotingPage';
 import { ForgotPasswordPage } from './pages/PasswordReset';
 import ProtectedRoute from './components/ProtectedRoutes'; // Import ProtectedRoute component
