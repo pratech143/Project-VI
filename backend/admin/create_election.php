@@ -52,14 +52,25 @@ if ($location_result->num_rows === 0) {
 $location_data = $location_result->fetch_assoc();
 $location_id = $location_data['location_id'];
 
-$available_posts = [];
-if (in_array($location_type, ['Metropolitan City', 'Sub-Metropolitan City', 'Municipality'])) {
-    $available_posts = [1, 2, 3, 4]; 
-} else if ($location_type === 'Rural Municipality/VDC') {
-    $available_posts = [3, 4];
+$check_existing_election = $conn->prepare("
+    SELECT election_id FROM elections 
+    WHERE location_id = ? AND ward = ? 
+    AND (start_date <= ? AND end_date >= ?) 
+    AND status IN ('Upcoming', 'Ongoing')
+");
+$check_existing_election->bind_param("iiss", $location_id, $ward, $end_date, $start_date);
+$check_existing_election->execute();
+$existing_election_result = $check_existing_election->get_result();
+
+if ($existing_election_result->num_rows > 0) {
+    echo json_encode(["success" => false, "message" => "An election is already scheduled for this ward in the same time."]);
+    exit;
 }
 
-$insert_election = $conn->prepare("INSERT INTO elections (name, description, location_id, location_type, ward, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+$insert_election = $conn->prepare("
+    INSERT INTO elections (name, description, location_id, location_type, ward, start_date, end_date, status) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+");
 $insert_election->bind_param("ssisssss", $name, $description, $location_id, $location_type, $ward, $start_date, $end_date, $status);
 
 if (!$insert_election->execute()) {
@@ -68,6 +79,13 @@ if (!$insert_election->execute()) {
 }
 
 $election_id = $conn->insert_id;
+
+$available_posts = [];
+if (in_array($location_type, ['Metropolitan City', 'Sub-Metropolitan City', 'Municipality'])) {
+    $available_posts = [1, 2, 3, 4]; 
+} else if ($location_type === 'Rural Municipality/VDC') {
+    $available_posts = [3, 4];
+}
 
 foreach ($available_posts as $post_id) {
     $insert_position = $conn->prepare("INSERT INTO election_positions (election_id, post_id) VALUES (?, ?)");
