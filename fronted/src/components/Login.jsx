@@ -49,6 +49,7 @@ export function Login() {
       localStorage.setItem("email",data.email)
         localStorage.setItem("role",data.role)
         localStorage.setItem("voterId",data.voter_id)
+        localStorage.setItem("voted",data.is_voted)
       
         setTimeout(()=>{
           navigate('/dashboard');

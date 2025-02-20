@@ -15,6 +15,7 @@ import { ForgotPasswordPage } from './pages/PasswordReset';
 import ProtectedRoute from './components/ProtectedRoutes'; // Import ProtectedRoute component
 
 function App() {
+  
   return (
     <Router>
       <Routes>
