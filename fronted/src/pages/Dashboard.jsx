@@ -8,10 +8,6 @@ import { Search, Bell } from "lucide-react";
 export default function UserDashboard() {
   const dispatch = useDispatch();
 
-  // Retrieve the email from localStorage
-  const emailFromStorage = localStorage.getItem("email");
-
-  // Fetch user data from Redux
   const {
     name,
     user_id,
@@ -26,13 +22,10 @@ export default function UserDashboard() {
   } = useSelector((state) => state.user);
 
   useEffect(() => {
-    const email = localStorage.getItem("email");
-    if (email) {
-      dispatch(fetchUserData({ email }))
-        .unwrap()
-        .then((data) => console.log("User Data:", data))
-        .catch((err) => console.log("Error:", err));
-    }
+    dispatch(fetchUserData())
+      .unwrap()
+      .then((data) => console.log("User Data:", data))
+      .catch((err) => console.log("Error:", err));
   }, [dispatch]);
 
   const [searchTerm, setSearchTerm] = useState("");

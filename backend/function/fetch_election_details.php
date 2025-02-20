@@ -5,24 +5,18 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-// if (!isset($_SESSION['voter_id'])) {
-//     echo json_encode(["success" => false, "message" => "Unauthorized access"]);
-//     exit;
-// }
+if (!isset($_SESSION['voter_id'])) {
+    echo json_encode(["success" => false, "message" => "Unauthorized access"]);
+    exit;
+}
+
+$user_id = $_SESSION['user_id']; 
+$voter_id = $_SESSION['voter_id'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
 }
-
-$data = json_decode(file_get_contents('php://input'), true);
-
-if (!$data) {
-    echo json_encode(["success" => false, "message" => "Data not received"]);
-    exit;
-}
-
-$voter_id = $data['voter_id'] ?? null;
 
 $user_query = $conn->prepare("SELECT u.role, g.location_id, g.ward FROM users u 
                               JOIN government_voters g ON u.voter_id = g.voter_id
@@ -41,12 +35,12 @@ $role = $user_data['role'];
 $location_id = $user_data['location_id'];
 $ward = $user_data['ward'];
 
-if ($role === 1) {
+if ($role === 1) { 
     $elections_query = $conn->prepare("SELECT e.election_id, e.name, e.description, e.ward, e.start_date, e.end_date, e.status, 
                                               l.location_name, l.district_name
                                        FROM elections e
                                        JOIN locations l ON e.location_id = l.location_id");
-} else {
+} else { 
     $elections_query = $conn->prepare("SELECT e.election_id, e.name, e.description, e.ward, e.start_date, e.end_date, e.status, 
                                               l.location_name, l.district_name
                                        FROM elections e
@@ -63,17 +57,14 @@ $elections = [];
 while ($election = $elections_result->fetch_assoc()) {
     $election_id = $election['election_id'];
 
+    $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
+                                        FROM candidates c
+                                        WHERE c.location_id = ? AND (c.ward = 0 OR c.ward = ?)
+                                        ORDER BY c.post_id ASC");
+
     if ($role === 1) {
-        $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
-                                            FROM candidates c
-                                            WHERE c.location_id = ? AND (c.ward = 0 OR c.ward = ?)
-                                            ORDER BY c.post_id ASC");
         $candidates_query->bind_param("ii", $location_id, $election['ward']); 
-    } else {
-        $candidates_query = $conn->prepare("SELECT c.candidate_id, c.candidate_name, c.party_name, c.post_id
-                                            FROM candidates c
-                                            WHERE c.location_id = ? AND (c.ward = 0 OR c.ward = ?)
-                                            ORDER BY c.post_id ASC");
+    } else { 
         $candidates_query->bind_param("ii", $location_id, $ward);
     }
 

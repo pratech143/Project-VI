@@ -22,15 +22,42 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import baseApi from "@/api/baseApi";
 
 export function Elections() {
   const dispatch = useDispatch();
-  const [voterId, setVoterId] = useState(localStorage.getItem("voterId"));
+  const [voterId, setVoterId] = useState(null);
   const { elections } = useSelector((state) => state.election);
   const [expandedPost, setExpandedPost] = useState(null);
-  const role=localStorage.getItem("role")
+  const [role, setRole] = useState('');
 
-
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const response = await baseApi.get("/config/get_user_session.php", {
+          withCredentials: true, // Ensure cookies are sent
+        });
+  
+        console.log("Session response:", response.data); // Debugging
+  
+        if (response.data.voter_id) {
+          setVoterId(response.data.voter_id);
+        } else {
+          console.warn("Voter ID not found in session:", response.data);
+        }
+  
+        if (response.data.role) {
+          setRole(response.data.role);
+        } else {
+          console.warn("Role not found in session:", response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error);
+      }
+    };
+  
+    fetchSession();
+  }, []);
 
   useEffect(() => {
     if (voterId) {
@@ -72,7 +99,9 @@ export function Elections() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => dispatch(fetchElections({ voter_id: voterId }))}
+                        onClick={() =>
+                          dispatch(fetchElections({ voter_id: voterId }))
+                        }
                       >
                         <RefreshCcw className="w-4 h-4 text-gray-400 hover:text-white" />
                       </Button>
@@ -160,14 +189,18 @@ export function Elections() {
                     </div>
                   </CardContent>
                   <CardFooter className="border-t border-gray-700 pt-4 flex justify-between">
-                  {(role!=="admin")&&
+                    {role !== 'admin' && (
                       <Button
                         className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center"
                         disabled={election.status.toLowerCase() !== "ongoing"}
                       >
-                      <Link to="/votingpage">  <Vote className="w-4 h-4 mr-2" /> Cast Vote    </Link>
-                      </Button>}
-                
+                        <Link to="/votingpage">
+                          {" "}
+                          <Vote className="w-4 h-4 mr-2" /> Cast Vote{" "}
+                        </Link>
+                      </Button>
+                    )}
+
                     <span className="text-sm text-gray-400">
                       {election.status.toLowerCase() === "ongoing"
                         ? "Voting is open"
@@ -181,10 +214,21 @@ export function Elections() {
             ))}
           </div>
         ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
-            <h3 className="text-xl font-semibold text-white mb-2">No Active Elections</h3>
-            <p className="text-gray-400 mb-6">There are currently no elections available for voting.</p>
-            <Button onClick={() => dispatch(fetchElections({ voter_id: voterId }))} className="bg-indigo-600 hover:bg-indigo-700">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16"
+          >
+            <h3 className="text-xl font-semibold text-white mb-2">
+              No Active Elections
+            </h3>
+            <p className="text-gray-400 mb-6">
+              There are currently no elections available for voting.
+            </p>
+            <Button
+              onClick={() => dispatch(fetchElections({ voter_id: voterId }))}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
               <RefreshCcw className="w-4 h-4 mr-2" /> Check Again
             </Button>
           </motion.div>

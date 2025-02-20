@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import baseApi from "../../api/baseApi"; // Assuming you are importing baseApi
+import baseApi from "../../api/baseApi"; 
 
-// Login action
 export const fetchLogin = createAsyncThunk(
   "auth/fetchLogin",
   async ({ email, password }, { rejectWithValue }) => {
@@ -30,7 +29,7 @@ export const userLogout = createAsyncThunk(
   async ( { rejectWithValue }) => {
 
     try {
-      const response = await baseApi.post("logout.php", { email, password });
+      const response = await baseApi.post("logout.php");
 
       const data = response.data;
       console.log(data)

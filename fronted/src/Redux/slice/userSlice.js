@@ -3,15 +3,15 @@ import baseApi from "../../api/baseApi";
 
 export const fetchUserData = createAsyncThunk(
   "user/fetchUserData",
-  async ({ email }, { rejectWithValue }) => { 
+  async (_, { rejectWithValue }) => {  
     try {
-      const response = await baseApi.post("public/dashboard.php", { email });
+      const response = await baseApi.post("public/dashboard.php"); 
 
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
 
-      return response.data.data;  
+      return response.data;  
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -21,11 +21,14 @@ export const fetchUserData = createAsyncThunk(
 const userSlice = createSlice({
   name: "user",
   initialState: {
+    name: "",
     user_id: "",
-    role:"",
-    email:"",
-    voter_id:"",
-    location:"",
+    role: "",
+    email: "",
+    dob: "",
+    gender: "",
+    location: "",
+    voter_id: "",
     isLoading: false,
     isError: false,
     errorMessage: "",
@@ -40,22 +43,30 @@ const userSlice = createSlice({
       })
       .addCase(fetchUserData.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.name=action.payload.user_info.name
-        state.user_id=action.payload.user_info.user_id
-        state.role=action.payload.role
-        state.email=action.payload.user_info.email
-        state.dob=action.payload.user_info.dob
-        state.gender=action.payload.user_info.gender
-        state.location=action.payload.user_info.location
-        state.voter_id=action.payload.user_info.voter_id
-
+        state.isError = false;
+        
+        const payload = action.payload;
+        if (!payload || !payload.success || !payload.data || !payload.data.user_info) {
+          state.isError = true;
+          console.error("Invalid Payload:", payload);
+          return;
+        }
       
+        const userInfo = payload.data.user_info;
+        state.name = userInfo.name;
+        state.user_id = userInfo.user_id;
+        state.role = payload.data.role === 0 ? "Voter" : payload.data.role;
+        state.email = userInfo.email;
+        state.voter_id = userInfo.voter_id;
+        state.dob = userInfo.dob;
+        state.gender = userInfo.gender;
+        state.location = userInfo.location;
       })
       .addCase(fetchUserData.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
-        state.errorMessage = action.payload || "An error occurred";
-      })
+        console.error("Fetch User Data Error:", action.error);
+      });
   },
 });
 

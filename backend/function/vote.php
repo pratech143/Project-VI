@@ -1,9 +1,16 @@
 <?php
+session_start();
+
 include '../config/database.php';
 include '../config/mail_config.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
+
+if (!isset($_SESSION['voter_id']) || $_SESSION['role'] !== 'voter') {
+    echo json_encode(["success" => false, "message" => "Unauthorized access."]);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Use POST."]);
@@ -17,7 +24,7 @@ if (!$data) {
     exit;
 }
 
-$voter_id = $data['voter_id'] ?? null;
+$voter_id = $_SESSION['voter_id'];
 $election_id = $data['election_id'] ?? null;
 $votes = $data['votes'] ?? [];
 
@@ -26,7 +33,6 @@ if (empty($voter_id) || empty($election_id) || !is_array($votes) || count($votes
     exit;
 }
 
-// Validate that the voter exists
 $voter_check = $conn->prepare("
     SELECT g.voter_id 
     FROM government_voters g
@@ -78,20 +84,69 @@ if ($election_data['status'] !== 'Ongoing' || $current_date < $election_data['st
     echo json_encode(["success" => false, "message" => "This election is not active or has expired"]);
     exit;
 }
+//change
+$flattened_votes = [];
+foreach ($votes as $vote) {
+    if (is_array($vote['candidate_id'])) {
+        foreach ($vote['candidate_id'] as $single_candidate_id) {
+            $flattened_votes[] = [
+                'post_id' => $vote['post_id'],
+                'candidate_id' => $single_candidate_id
+            ];
+        }
+    } else {
+        // Single candidate case
+        $flattened_votes[] = $vote;
+    }
+}
+$votes = $flattened_votes;
 
+$post_counts = [
+    'Ward Member' => []
+];
+
+$valid_votes = [];
+
+// Track the number of selected candidates for each post
+foreach ($votes as $vote) {
+    $candidate_id = $vote['candidate_id'];
+    $post_id = $vote['post_id'];
+
+    // Get post name from the database (make sure it's being fetched correctly)
+    $post_query = $conn->prepare("SELECT post_name FROM posts WHERE post_id = ?");
+    $post_query->bind_param("i", $post_id);
+    $post_query->execute();
+    $post_result = $post_query->get_result();
+    $post_name = $post_result->fetch_assoc()['post_name'];
+
+    // Handle "Ward Member" votes with a limit of 4 candidates
+    if ($post_name === 'Ward Member') {
+        if (count($post_counts['Ward Member']) >= 4) {
+            continue; // Do not accept more than 4 candidates for "Ward Member"
+        }
+        $post_counts['Ward Member'][] = $candidate_id;
+    } else {
+        $post_counts[$post_name][] = $candidate_id;
+    }
+
+    $valid_votes[] = $vote;
+}
+
+// Ensure you are validating that there are exactly 4 "Ward Member" votes
+if (count($post_counts['Ward Member']) !== 4) {
+    echo json_encode(["success" => false, "message" => "You must select exactly 4 Ward Members."]);
+    exit;
+}
+
+// Process each vote and insert into the database
 $success_votes = [];
 $failed_votes = [];
 
 $conn->begin_transaction();
 try {
-    foreach ($votes as $vote) {
-        $candidate_id = $vote['candidate_id'] ?? null;
-        $post_id = $vote['post_id'] ?? null;
-
-        if (empty($candidate_id) || empty($post_id)) {
-            $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Missing candidate or post ID"];
-            continue;
-        }
+    foreach ($valid_votes as $vote) {
+        $candidate_id = $vote['candidate_id'];
+        $post_id = $vote['post_id'];
 
         $candidate_check = $conn->prepare("
             SELECT candidate_id FROM candidates WHERE candidate_id = ? AND post_id = ?
@@ -101,10 +156,12 @@ try {
         $candidate_result = $candidate_check->get_result();
 
         if ($candidate_result->num_rows === 0) {
+            // If candidate is not found, continue and mark as failed vote
             $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Candidate not found for this post"];
             continue;
         }
 
+        // Check if the user has already voted for this post
         $vote_check = $conn->prepare("
             SELECT vote_id FROM votes WHERE voter_id = ? AND election_id = ? AND post_id = ?
         ");
@@ -112,7 +169,15 @@ try {
         $vote_check->execute();
         $vote_result = $vote_check->get_result();
 
-        if ($vote_result->num_rows > 0) {
+    if ($post_name == 'Ward Member') {
+            
+        if ($vote_result->num_rows >= 4) {
+            // If the user has already voted for this post, mark it as failed
+            $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "You have already voted for this post"];
+            continue;
+        }
+    }
+        elseif ($vote_result->num_rows > 0){
             $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "You have already voted for this post"];
             continue;
         }
@@ -134,6 +199,7 @@ try {
         }
     }
 
+    // Commit the transaction
     $conn->commit();
 } catch (Exception $e) {
     $conn->rollback();
@@ -170,11 +236,14 @@ if (count($success_votes) > 0) {
     sendEmail($voter_email, $subject, $message);
 }
 
-echo json_encode([
-    "success" => true,
-    "message" => "Voting process completed",
-    "is_voted" => 1, // Send this to frontend
-    "successful_votes" => $success_votes,
-    "failed_votes" => $failed_votes
-]);
+$response = [
+    'success' => true,
+    'message' => 'Voting process completed',
+    'is_voted' => 1,
+    'successful_votes' => $success_votes,
+    'failed_votes' => $failed_votes,
+    'ward_member_votes' => $post_counts['Ward Member'] 
+];
+
+echo json_encode($response);
 ?>

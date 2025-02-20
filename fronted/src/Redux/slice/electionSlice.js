@@ -1,7 +1,7 @@
+
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import baseApi from "../../api/baseApi";
 
-// Thunk to create an election
 export const createElection = createAsyncThunk(
   "election/createElection",
   async (
@@ -32,7 +32,6 @@ export const createElection = createAsyncThunk(
   }
 );
 
-// Thunk to fetch locations
 export const fetchLocations = createAsyncThunk(
   "election/fetchLocations",
   async (_, { rejectWithValue }) => {
@@ -49,18 +48,15 @@ export const fetchLocations = createAsyncThunk(
   }
 );
 
-// Thunk to fetch elections for a specific voter
 export const fetchElections = createAsyncThunk(
   "election/fetchElections",
-  async (_, { rejectWithValue }) => {
+  async ({ voterId }, { rejectWithValue }) => {
     try {
-      // Get voter_id from localStorage (or session-based authentication if implemented)
-      const voter_id = localStorage.getItem("voterId");
+      const response = await baseApi.post("function/fetch_election_details.php", {
+        withCredentials: true,
+        voter_id: voterId, 
+      });
 
-      // Prepare request payload: If voter_id exists, send it; otherwise, fetch all elections
-      const requestData = voter_id ? { voter_id } : {}; 
-
-      const response = await baseApi.post("function/fetch_election_details.php", requestData);
       const data = response.data;
 
       if (!data.success) {
@@ -120,9 +116,10 @@ const electionSlice = createSlice({
         state.isLoading = true;
       })
       .addCase(fetchElections.fulfilled, (state, action) => {
+        console.log("Fetched Elections Data:", action.payload); // Debugging log
         state.isLoading = false;
         state.elections = action.payload; // Store fetched elections
-      })
+    })
       .addCase(fetchElections.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;

@@ -19,7 +19,7 @@ if (isset($_SESSION)) {
             $params["httponly"]
         );
     }
-
+    session_unset();
     session_destroy();
 
     echo json_encode([

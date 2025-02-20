@@ -1,9 +1,16 @@
 <?php
+session_start();
+
 include '../config/database.php';
 include '../config/mail_config.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
+
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(["success" => false, "message" => "Unauthorized access. Please log in."]);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
@@ -31,15 +38,7 @@ while ($row = $election_result->fetch_assoc()) {
 }
 
 $query = "
-    SELECT 
-        e.election_id,
-        e.name AS election_name,
-        c.candidate_id, 
-        c.candidate_name, 
-        c.party_name, 
-        c.post_id, 
-        p.post_name, 
-        COUNT(v.vote_id) AS vote_count
+    SELECT e.election_id, e.name AS election_name, c.candidate_id, c.candidate_name, c.party_name, c.post_id, p.post_name, COUNT(v.vote_id) AS vote_count
     FROM elections e
     JOIN candidates c ON c.location_id = e.location_id
     JOIN posts p ON c.post_id = p.post_id

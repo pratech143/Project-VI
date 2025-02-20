@@ -1,16 +1,18 @@
 <?php
+
+session_start();
+
 include '../config/database.php';
 include '../config/mail_config.php'; 
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-// session_start();
-
-// if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
-//     echo json_encode(["success" => false, "message" => "Unauthorized access."]);
-//     exit;
-// }
+// Ensure only admins can create elections
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+    echo json_encode(["success" => false, "message" => "Unauthorized access."]);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
@@ -18,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $data = json_decode(file_get_contents('php://input'), true);
+
 if (!$data) {
     echo json_encode(["success" => false, "message" => "Data not received"]);
     exit;

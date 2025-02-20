@@ -24,7 +24,7 @@ if (empty($email) || empty($password)) {
     exit;
 }
 
-$user_check = $conn->prepare("SELECT user_id, email, password, is_email_verified, role, voter_id FROM users WHERE email = ?");
+$user_check = $conn->prepare("SELECT user_id, email, password, is_email_verified, role, voter_id, is_voted FROM users WHERE email = ?");
 $user_check->bind_param("s", $email);
 $user_check->execute();
 $user_result = $user_check->get_result();
@@ -54,6 +54,7 @@ $_SESSION['user_id'] = $user['user_id'];
 $_SESSION['role'] = $role;
 $_SESSION['email'] = $email;
 $_SESSION['voter_id'] = $user['voter_id'] ?? null; 
+$_SESSION['is_voted'] = $user['is_voted'];
 
 echo json_encode([
     "success" => true,
@@ -61,7 +62,7 @@ echo json_encode([
     "role" => $role,
     "user_id" => $user['user_id'],
     "email" => $user['email'],
-    "voter_id" => $user['voter_id'] ?? null
+    "voter_id" => $user['voter_id'] ?? null,
 ]);
 
 ?>

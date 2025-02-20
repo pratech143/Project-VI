@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import baseApi from '../../api/baseApi';  // Assuming your API base setup is already configured
 
-// Async thunk for fetching election results
 export const fetchElectionResults = createAsyncThunk(
   'results/fetchElectionResults',
   async (_, { rejectWithValue }) => {

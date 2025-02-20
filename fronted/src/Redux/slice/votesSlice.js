@@ -1,23 +1,22 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import baseApi from "../../api/baseApi";
 
-// Async thunk for submitting votes
 export const submitVotes = createAsyncThunk(
   "votes/submitVotes",
-  async ({ voter_id, election_id, votes }, { rejectWithValue }) => {
+  async ({ election_id, votes }, { rejectWithValue }) => {
     try {
       const response = await baseApi.post("function/vote.php", {
-        voter_id,
         election_id,
         votes,
-      });
-      console.log(response)
+      }, { withCredentials: true }); 
+
+      console.log(response);
 
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
 
-      return response.data;  // Response will contain success or failure with details
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -49,7 +48,7 @@ const votesSlice = createSlice({
       .addCase(submitVotes.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
-        state.errorMessage = action.payload.errorMessage|| "An error occurred";
+        state.errorMessage = action.payload || "An error occurred";
       });
   },
 });
