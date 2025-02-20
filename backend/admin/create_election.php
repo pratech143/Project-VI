@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 
 include '../config/database.php';
@@ -8,7 +7,6 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-// Ensure only admins can create elections
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
     echo json_encode(["success" => false, "message" => "Unauthorized access."]);
     exit;

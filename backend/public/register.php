@@ -1,11 +1,12 @@
 <?php
-include '../config/database.php'; 
-include '../config/handle_cors.php'; 
-include '../config/mail_config.php';  
+session_start();
+
+include '../config/database.php';
+include '../config/handle_cors.php';
+include '../config/mail_config.php';
 
 header('Content-Type: application/json');
 
-// Check if the request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
@@ -52,30 +53,30 @@ if ($user_result->num_rows > 0) {
     exit;
 }
 
-$password_hash = password_hash($password, PASSWORD_DEFAULT);
 $otp = rand(100000, 999999);
-$otp_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+$_SESSION['otp'][$email] = [
+    'otp' => $otp,
+    'expiry' => time() + (15 * 60)
+];
 
-try {
-    $stmt = $conn->prepare("INSERT INTO users (email, password, voter_id, otp, otp_expiry, role) VALUES (?, ?, ?, ?, ?, 0)");
-    $stmt->bind_param("sssss", $email, $password_hash, $voter_id, $otp, $otp_expiry);
-    $stmt->execute();
+$_SESSION['registration_data'] = [
+    'voter_id' => $voter_id,
+    'email' => $email,
+    'password' => password_hash($password, PASSWORD_DEFAULT)
+];
 
-    $subject = "Email Verification for Election System";
-    $message = "Your OTP code is: $otp. It will expire in 15 minutes.";
+$subject = "Email Verification for Election System";
+$message = "Your OTP code is: $otp. It will expire in 15 minutes.";
 
-    if (sendEmail($email, $subject, $message)) {
-        echo json_encode([
-            "success" => true,
-            "message" => "Registration successful. Please verify your email using the OTP sent to $email"
-        ]);
-    } else {
-        echo json_encode([
-            "success" => false,
-            "message" => "Registration successful, but failed to send OTP email"
-        ]);
-    }
-} catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => "Error during registration: " . $e->getMessage()]);
+if (sendEmail($email, $subject, $message)) {
+    echo json_encode([
+        "success" => true,
+        "message" => "OTP sent to $email. Please verify your email."
+    ]);
+} else {
+    echo json_encode([
+        "success" => false,
+        "message" => "Failed to send OTP email"
+    ]);
 }
 ?>
