@@ -97,6 +97,9 @@ const authSlice = createSlice({
   initialState: {
     data: null,
     email: "",
+    is_voted:"",
+    role:"",
+    user_id:"",
     password: "",
     isLoading: false,
     isError: false,
@@ -111,9 +114,14 @@ const authSlice = createSlice({
         state.errorMessage = "";
       })
       .addCase(fetchLogin.fulfilled, (state, action) => {
+        console.log(action.payload)
         state.isLoading = false;
         state.data = action.payload;
         state.email = action.payload.email;
+        state.user_id=action.payload.user_id;
+        state.role=action.payload.role;
+        state.is_voted=action.payload.is_voted;
+      
       })
       .addCase(fetchLogin.rejected, (state, action) => {
         state.isLoading = false;

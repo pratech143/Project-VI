@@ -4,6 +4,7 @@ import { fetchUserData } from "@/Redux/slice/userSlice";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Search, Bell } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function UserDashboard() {
   const dispatch = useDispatch();
@@ -83,7 +84,7 @@ export default function UserDashboard() {
             <h2 className="text-xl font-semibold">View Elections</h2>
             <p className="text-gray-400">Check elections in your area.</p>
             <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">
-              Go
+            <Link to="/elections">Go</Link>
             </Button>
           </div>
           <div className="bg-gray-800 hover:bg-gray-700 transition-all rounded-lg p-6 flex-1">
@@ -92,7 +93,7 @@ export default function UserDashboard() {
               See past and current election results.
             </p>
             <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700">
-              Go
+            <Link to="/results">Go</Link>
             </Button>
           </div>
         </div>

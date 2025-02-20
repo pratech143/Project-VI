@@ -27,10 +27,9 @@ export function Elections() {
   const dispatch = useDispatch();
   const [voterId, setVoterId] = useState(localStorage.getItem("voterId"));
   const { elections } = useSelector((state) => state.election);
-  const [expandedPost, setExpandedPost] = useState(null);
-  const role=localStorage.getItem("role")
-
-
+  const [expandedPosts, setExpandedPosts] = useState({}); // Updated state to track expanded posts for each election
+  const role = localStorage.getItem("role");
+  const voted = localStorage.getItem("voted");
 
   useEffect(() => {
     if (voterId) {
@@ -38,8 +37,11 @@ export function Elections() {
     }
   }, [dispatch, voterId]);
 
-  const toggleExpand = (post) => {
-    setExpandedPost(expandedPost === post ? null : post);
+  const toggleExpand = (electionId, post) => {
+    setExpandedPosts((prevState) => ({
+      ...prevState,
+      [electionId]: prevState[electionId] === post ? null : post, // Toggle specific election post
+    }));
   };
 
   return (
@@ -65,8 +67,8 @@ export function Elections() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 w-full">
-                  <CardHeader>
+              <Card className="bg-gray-800/90 backdrop-blur-none border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 w-full">
+              <CardHeader>
                     <CardTitle className="text-2xl font-bold text-white flex justify-between items-center">
                       {election.name}
                       <Button
@@ -108,18 +110,18 @@ export function Elections() {
                             className="bg-gray-700/30 rounded-lg p-4"
                           >
                             <button
-                              onClick={() => toggleExpand(post)}
+                              onClick={() => toggleExpand(election.election_id, post)} // Pass the election_id along with the post name
                               className="flex justify-between w-full text-left text-indigo-400 font-medium"
                             >
                               {post}
-                              {expandedPost === post ? (
+                              {expandedPosts[election.election_id] === post ? (
                                 <ChevronUp className="w-5 h-5" />
                               ) : (
                                 <ChevronDown className="w-5 h-5" />
                               )}
                             </button>
                             <AnimatePresence>
-                              {expandedPost === post && (
+                              {expandedPosts[election.election_id] === post && (
                                 <motion.div
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: "auto" }}
@@ -160,14 +162,18 @@ export function Elections() {
                     </div>
                   </CardContent>
                   <CardFooter className="border-t border-gray-700 pt-4 flex justify-between">
-                  {(role!=="admin")&&
+                    {(role !== "admin") && (
                       <Button
                         className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center"
-                        disabled={election.status.toLowerCase() !== "ongoing"}
+                        disabled={election.status.toLowerCase() !== "ongoing" || voted == 1}
                       >
-                      <Link to="/votingpage">  <Vote className="w-4 h-4 mr-2" /> Cast Vote    </Link>
-                      </Button>}
-                
+                        <Link to="/votingpage">
+                          <Vote className="w-4 h-4 mr-2" />
+                          {voted == 1 ? "You have already voted" : "Cast Vote"}
+                        </Link>
+                      </Button>
+                    )}
+
                     <span className="text-sm text-gray-400">
                       {election.status.toLowerCase() === "ongoing"
                         ? "Voting is open"

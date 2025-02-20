@@ -1,142 +1,235 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { LogOut, User, BarChart } from 'lucide-react';
+import { LogOut, User, BarChart, Menu, ChevronDown, Upload } from 'lucide-react';
 import { useDispatch } from 'react-redux';
-import {userLogout} from"@/Redux/slice/authSlice"
+import { userLogout } from "@/Redux/slice/authSlice";
 import { toast } from 'react-hot-toast';
+
 export default function Header() {
     const navigate = useNavigate();
     const email = localStorage.getItem("email");
     const role = localStorage.getItem("role");
-    const dispatch=useDispatch()
+    const dispatch = useDispatch();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false); // State for profile dropdown
 
     const handleSignOut = async () => {
-        
-        try{
-            dispatch(userLogout())
-            toast.success("successfully logged out")
-        }
-        catch(error){
-            console.log(error.message)
+        try {
+            dispatch(userLogout());
+            toast.success("Successfully logged out");
+        } catch (error) {
+            console.log(error.message);
         }
         localStorage.removeItem("email");
         localStorage.removeItem("role");
+        localStorage.removeItem("voterId");
+        localStorage.removeItem("voted");
         navigate("/auth/login");
     };
-    if (!email) {
-        return (
-            <header className="shadow sticky z-50 top-0">
-                <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5">
-                    <div className="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
-                        <Link to="/" className="flex items-center">
-                            <img
-                                src="/logo.png"
-                                className="mr-3  h-20"
-                                alt="Logo"
-                            />
-                        </Link>
-                        <div className="flex items-center lg:order-2">
-                            <Link
-                                to="/auth/login"
-                                className="text-gray-800 hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 lg:px-5 py-2 lg:py-2.5 mr-2 focus:outline-none"
-                            >
-                                <User className="h-4 w-4 mr-2" />
-                                Login
-                            </Link>
-                        </div>
-                    </div>
-                </nav>
-            </header>
-        );
-    }
+
+    const handleUploadPicture = () => {
+        toast.info("Upload picture functionality coming soon!");
+    };
 
     return (
-        <header className="shadow sticky z-50 top-0">
-            <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5">
-                <div className="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
-                    <Link to="/" className="flex items-center">
-                        <img
-                            src="/logo.png"
-                            className="mr-3 h-12"
-                            alt="Logo"
-                        />
-                    </Link>
-                    <div className="flex items-center lg:order-2">
-                        {/* Sign out button if logged in */}
-                        <button
-                            onClick={handleSignOut}
-                            className="ml-4 flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:text-gray-600"
-                        >
-                            <LogOut className="h-4 w-4 mr-2" />
-                            Sign Out
-                        </button>
-                    </div>
-                    <div
-                        className="hidden justify-between items-center w-full lg:flex lg:w-auto lg:order-1"
-                        id="mobile-menu-2"
-                    >
-                        <ul className="flex flex-col mt-4 font-medium lg:flex-row lg:space-x-8 lg:mt-0">
-                            {/* Always visible links */}
-                            <li>
-                                <NavLink
-                                    to="/"
-                                    className={({ isActive }) =>
-                                        `block py-2 pr-4 pl-3 duration-200 ${isActive ? "text-orange-700" : "text-gray-700"} border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
-                                    }
-                                >
-                                    Home
-                                </NavLink>
-                            </li>
-                            <li>
-                                <NavLink
-                                    to="/dashboard"
-                                    className={({ isActive }) =>
-                                        `block py-2 pr-4 pl-3 duration-200 ${isActive ? "text-orange-700" : "text-gray-700"} border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
-                                    }
-                                >
-                                    Dashboard
-                                </NavLink>
-                            </li>
-                            <li>
-                                <NavLink
-                                    to="/results"
-                                    className={({ isActive }) =>
-                                        `block py-2 pr-4 pl-3 duration-200 ${isActive ? "text-orange-700" : "text-gray-700"} border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
-                                    }
-                                >
-                                    <BarChart className="h-4 w-4 inline-block mr-1" />
-                                    Results
-                                </NavLink>
-                            </li>
+        <header className="shadow sticky z-50 top-0 bg-white">
+            <nav className="border-gray-200 px-4 lg:px-6 py-3 flex justify-between items-center">
+                <Link to="/" className="flex items-center">
+                    <img src="/logo.png" className="mr-3 h-12" alt="Logo" />
+                </Link>
 
-                            <li>
-                                <NavLink
-                                    to="/elections"
-                                    className={({ isActive }) =>
-                                        `block py-2 pr-4 pl-3 duration-200 ${isActive ? "text-orange-700" : "text-gray-700"} border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
-                                    }
-                                >
-                                    Elections
-                                </NavLink>
-                            </li>
+                {/* Mobile Menu Button */}
+                <button 
+                    onClick={() => setMenuOpen(!menuOpen)} 
+                    className="lg:hidden text-gray-700"
+                >
+                    <Menu className="h-6 w-6" />
+                </button>
 
-                            {/* Conditionally render "Create Election" only if role is "admin" */}
-                            {role === "admin" && (
+                {/* Navbar Items - Large Screen */}
+                <div className="hidden lg:flex items-center space-x-6">
+                    <ul className="flex space-x-6 font-medium">
+                        <li>
+                            <NavLink
+                                to="/"
+                                className={({ isActive }) =>
+                                    `py-2 px-3 ${isActive ? "text-orange-700" : "text-gray-700"} hover:text-orange-700`
+                                }
+                            >
+                                Home
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink
+                                to="/results"
+                                className={({ isActive }) =>
+                                    `py-2 px-3 ${isActive ? "text-orange-700" : "text-gray-700"} hover:text-orange-700`
+                                }
+                            >
+                                <BarChart className="h-4 w-4 inline-block mr-1" />
+                                Results
+                            </NavLink>
+                        </li>
+                        {role === "voter" && (
+                            <>
                                 <li>
                                     <NavLink
-                                        to="/createelection"
+                                        to="/dashboard"
                                         className={({ isActive }) =>
-                                            `block py-2 pr-4 pl-3 duration-200 ${isActive ? "text-orange-700" : "text-gray-700"} border-b border-gray-100 hover:bg-gray-50 lg:hover:bg-transparent lg:border-0 hover:text-orange-700 lg:p-0`
+                                            `py-2 px-3 ${isActive ? "text-orange-700" : "text-gray-700"} hover:text-orange-700`
                                         }
                                     >
-                                        Create Election
+                                        Dashboard
                                     </NavLink>
                                 </li>
+                                <li>
+                                    <NavLink
+                                        to="/elections"
+                                        className={({ isActive }) =>
+                                            `py-2 px-3 ${isActive ? "text-orange-700" : "text-gray-700"} hover:text-orange-700`
+                                        }
+                                    >
+                                        Elections
+                                    </NavLink>
+                                </li>
+                            </>
+                        )}
+                        {role === "admin" && (
+                            <li>
+                                <NavLink
+                                    to="/createelection"
+                                    className={({ isActive }) =>
+                                        `py-2 px-3 ${isActive ? "text-orange-700" : "text-gray-700"} hover:text-orange-700`
+                                    }
+                                >
+                                    Create Election
+                                </NavLink>
+                            </li>
+                        )}
+                    </ul>
+
+                    {/* Profile Dropdown */}
+                    {email ? (
+                        <div className="relative">
+                            <button
+                                onClick={() => setProfileOpen(!profileOpen)}
+                                className="ml-4 flex items-center px-3 py-2 text-sm font-medium text-gray-900 hover:text-gray-600"
+                            >
+                                <User className="h-4 w-4 mr-2" />
+                                {email}
+                                <ChevronDown className="ml-1 h-4 w-4" />
+                            </button>
+                            {profileOpen && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md">
+                                    <button
+                                        onClick={handleUploadPicture}
+                                        className="block w-full px-4 py-2 text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <Upload className="h-4 w-4 mr-2 inline-block" />
+                                        Upload Picture
+                                    </button>
+                                    <button
+                                        onClick={handleSignOut}
+                                        className="block w-full px-4 py-2 text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <LogOut className="h-4 w-4 mr-2 inline-block" />
+                                        Sign Out
+                                    </button>
+                                </div>
                             )}
-                        </ul>
-                    </div>
+                        </div>
+                    ) : (
+                        <Link
+                            to="/auth/login"
+                            className="flex items-center text-gray-800 hover:bg-gray-50 px-4 py-2 rounded-lg"
+                        >
+                            <User className="h-4 w-4 mr-2" />
+                            Login
+                        </Link>
+                    )}
                 </div>
             </nav>
+
+            {/* Mobile Menu */}
+            {menuOpen && (
+                <div className="lg:hidden bg-white border-t py-4">
+                    <ul className="flex flex-col items-center space-y-4">
+                        <li>
+                            <NavLink
+                                to="/"
+                                className="text-gray-700 hover:text-orange-700"
+                                onClick={() => setMenuOpen(false)}
+                            >
+                                Home
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink
+                                to="/results"
+                                className="text-gray-700 hover:text-orange-700"
+                                onClick={() => setMenuOpen(false)}
+                            >
+                                <BarChart className="h-4 w-4 inline-block mr-1" />
+                                Results
+                            </NavLink>
+                        </li>
+                        {role === "voter" && (
+                            <>
+                                <li>
+                                    <NavLink
+                                        to="/dashboard"
+                                        className="text-gray-700 hover:text-orange-700"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        Dashboard
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink
+                                        to="/elections"
+                                        className="text-gray-700 hover:text-orange-700"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        Elections
+                                    </NavLink>
+                                </li>
+                            </>
+                        )}
+                        {role === "admin" && (
+                            <li>
+                                <NavLink
+                                    to="/createelection"
+                                    className="text-gray-700 hover:text-orange-700"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    Create Election
+                                </NavLink>
+                            </li>
+                        )}
+                        <li>
+                            {email ? (
+                                <button
+                                    onClick={() => {
+                                        handleSignOut();
+                                        setMenuOpen(false);
+                                    }}
+                                    className="text-gray-700 hover:text-orange-700"
+                                >
+                                    Sign Out
+                                </button>
+                            ) : (
+                                <Link
+                                    to="/auth/login"
+                                    className="text-gray-700 hover:text-orange-700"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    Login
+                                </Link>
+                            )}
+                        </li>
+                    </ul>
+                </div>
+            )}
         </header>
     );
 }

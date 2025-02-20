@@ -49,7 +49,7 @@ const votesSlice = createSlice({
       .addCase(submitVotes.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
-        state.errorMessage = action.payload.errorMessage|| "An error occurred";
+        state.errorMessage = action.payload.errorMessage;
       });
   },
 });

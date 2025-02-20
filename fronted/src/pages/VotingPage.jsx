@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 const VotingPage = () => {
   const dispatch = useDispatch();
@@ -48,29 +49,47 @@ const VotingPage = () => {
 
   useEffect(() => {
     if (successful_votes && successful_votes.length > 0) {
-      navigate("/thank-you");
+      toast.success("you have successfully voted.check email for verification")
+      localStorage.setItem("voted",1)
+      navigate("/results");
     }
   }, [successful_votes, navigate]);
-
-
-  
 
   if (!elections || elections.length === 0 || !elections[0].candidates) {
     return null;
   }
-
 
   const posts = Object.keys(elections[0].candidates);
   const currentPost = posts[currentPostIndex];
   const candidates = elections[0].candidates[currentPost];
 
   const handleSelectCandidate = (post, candidateId) => {
-    setSelectedVotes((prev) => ({ ...prev, [post]: candidateId }));
+    setSelectedVotes((prevVotes) => {
+      const updatedVotes = { ...prevVotes };
+
+      if (post === "Ward Member") {
+        // Ensure up to 4 Ward Members can be selected
+        const wardMembers = updatedVotes["Ward Member"] || [];
+        if (wardMembers.includes(candidateId)) {
+          // Deselect if already selected
+          updatedVotes["Ward Member"] = wardMembers.filter((id) => id !== candidateId);
+        } else if (wardMembers.length < 4) {
+          // Add to selected if less than 4
+          updatedVotes["Ward Member"] = [...wardMembers, candidateId];
+        }
+      } else {
+        // For all other posts, allow only one selection
+        updatedVotes[post] = candidateId;
+      }
+
+      return updatedVotes;
+    });
   };
+
 
   const handleNext = () => {
     if (currentPostIndex < posts.length - 1) {
-      setCurrentPostIndex(prev => prev + 1);
+      setCurrentPostIndex((prev) => prev + 1);
     } else {
       setVotingComplete(true);
       setShowConfirmation(true);
@@ -79,39 +98,41 @@ const VotingPage = () => {
 
   const handlePrevious = () => {
     if (currentPostIndex > 0) {
-      setCurrentPostIndex(prev => prev - 1);
+      setCurrentPostIndex((prev) => prev - 1);
     }
   };
 
   const handleVoteSubmit = () => {
-    console.log("Submitting Votes...", new Date().toISOString());
-    
-  
     const votes = Object.keys(selectedVotes).map((post) => {
       const post_id = elections[0].candidates[post][0]?.post_id || 0;
-      
       return {
         post_id,
         candidate_id: selectedVotes[post],
       };
     });
-  
-    console.log("Votes to Submit:", votes,);
-    console.log(elections[0].election_id);
-    console.log(voter_id);
-    
-  
-    dispatch(submitVotes({ 
-      voter_id, 
-      election_id: elections[0].election_id, 
-      votes 
-    }));
+
+    dispatch(
+      submitVotes({
+        voter_id,
+        election_id: elections[0].election_id,
+        votes,
+      })
+    );
   };
-  
+
   const getSelectedCandidateName = (post) => {
-    const candidateId = selectedVotes[post];
-    const candidate = elections[0].candidates[post].find(c => c.candidate_id === candidateId);
-    return candidate ? candidate.candidate_name : '';
+    const selectedIds = selectedVotes[post];
+    if (post === "Ward Member" && Array.isArray(selectedIds)) {
+      return selectedIds
+        .map((candidateId) => {
+          const candidate = elections[0].candidates[post].find((c) => c.candidate_id === candidateId);
+          return candidate ? candidate.candidate_name : "";
+        })
+        .filter((name) => name !== "")
+        .join(", ");
+    }
+    const candidate = elections[0].candidates[post].find((c) => c.candidate_id === selectedIds);
+    return candidate ? candidate.candidate_name : "";
   };
 
   if (electionLoading) {
@@ -142,7 +163,6 @@ const VotingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        {/* Election Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -163,8 +183,8 @@ const VotingPage = () => {
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="h-4 w-4" />
                   <span>
-                    {format(new Date(elections[0].start_date), 'PPP')} to{' '}
-                    {format(new Date(elections[0].end_date), 'PPP')}
+                    {format(new Date(elections[0].start_date), "PPP")} to{" "}
+                    {format(new Date(elections[0].end_date), "PPP")}
                   </span>
                 </div>
               </div>
@@ -177,7 +197,6 @@ const VotingPage = () => {
           </div>
         </motion.div>
 
-        {/* Voting Section */}
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPost}
@@ -189,7 +208,6 @@ const VotingPage = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               Select your candidate for {currentPost}
             </h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {candidates.map((candidate) => (
                 <motion.div
@@ -199,19 +217,25 @@ const VotingPage = () => {
                 >
                   <label className="relative block cursor-pointer">
                     <input
-                      type="radio"
+                      type={currentPost === "Ward Member" ? "checkbox" : "radio"}
                       name={currentPost}
                       value={candidate.candidate_id}
                       onChange={() => handleSelectCandidate(currentPost, candidate.candidate_id)}
-                      checked={selectedVotes[currentPost] === candidate.candidate_id}
+                      checked={
+                        currentPost === "Ward Member"
+                          ? selectedVotes[currentPost]?.includes(candidate.candidate_id)
+                          : selectedVotes[currentPost] === candidate.candidate_id
+                      }
                       className="sr-only"
                     />
-                    <div className={`
-                      p-6 rounded-lg border-2 transition-all duration-200
-                      ${selectedVotes[currentPost] === candidate.candidate_id 
-                        ? 'border-indigo-600 bg-indigo-50' 
-                        : 'border-gray-200 hover:border-gray-300 bg-white'}
-                    `}>
+                    <div
+                      className={`p-6 rounded-lg border-2 transition-all duration-200 ${(currentPost === "Ward Member"
+                          ? selectedVotes[currentPost]?.includes(candidate.candidate_id)
+                          : selectedVotes[currentPost] === candidate.candidate_id)
+                          ? "border-indigo-600 bg-indigo-50"
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                        }`}
+                    >
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -220,11 +244,13 @@ const VotingPage = () => {
                           </h3>
                           <p className="text-gray-600 mt-1">{candidate.party_name}</p>
                         </div>
-                        {selectedVotes[currentPost] === candidate.candidate_id && (
-                          <div className="bg-indigo-600 text-white p-1 rounded-full">
-                            <Check className="h-4 w-4" />
-                          </div>
-                        )}
+                        {(currentPost === "Ward Member"
+                          ? selectedVotes[currentPost]?.includes(candidate.candidate_id)
+                          : selectedVotes[currentPost] === candidate.candidate_id) && (
+                            <div className="bg-indigo-600 text-white p-1 rounded-full">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
                       </div>
                     </div>
                   </label>
@@ -244,17 +270,18 @@ const VotingPage = () => {
               </Button>
               <Button
                 onClick={handleNext}
-                disabled={!selectedVotes[currentPost]}
-                className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
+                disabled={
+                  !selectedVotes[currentPost] ||
+                  (currentPost === "Ward Member" && (selectedVotes["Ward Member"] || []).length !== 4)
+                }
               >
-                {currentPostIndex === posts.length - 1 ? 'Review Votes' : 'Next'}
-                <ChevronRight className="h-4 w-4" />
+                {currentPostIndex === posts.length - 1 ? "Review Votes" : "Next"} <ChevronRight />
               </Button>
+
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Confirmation Dialog */}
         <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -262,11 +289,8 @@ const VotingPage = () => {
                 <Vote className="h-5 w-5 text-indigo-600" />
                 Confirm Your Votes
               </DialogTitle>
-              <DialogDescription>
-                Please review your selections before submitting your vote.
-              </DialogDescription>
+              <DialogDescription>Please review your selections before submitting your vote.</DialogDescription>
             </DialogHeader>
-
             <div className="mt-4 space-y-4">
               {posts.map((post) => (
                 <div key={post} className="bg-gray-50 p-4 rounded-lg">
@@ -275,32 +299,14 @@ const VotingPage = () => {
                 </div>
               ))}
             </div>
-
             <DialogFooter className="mt-6">
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirmation(false)}
-                className="mr-2"
-              >
+              <Button variant="outline" onClick={() => setShowConfirmation(false)} className="mr-2">
                 Review Choices
               </Button>
-              <Button
-                onClick={handleVoteSubmit}
-                disabled={voteLoading}
-                className="bg-indigo-600 hover:bg-indigo-700"
-              >
-                {voteLoading ? "Submitting..." : "Confirm & Submit Vote"}
+              <Button onClick={handleVoteSubmit} disabled={voteLoading} className="bg-indigo-600 hover:bg-indigo-700">
+                {voteLoading ? "Submitting..." : "Confirm & Submit"}
               </Button>
             </DialogFooter>
-
-            {voteError && (
-              <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
-                <div className="flex items-center gap-2 text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  <p className="text-sm font-medium">{voteErrorMessage}</p>
-                </div>
-              </div>
-            )}
           </DialogContent>
         </Dialog>
       </div>
