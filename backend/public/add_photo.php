@@ -1,37 +1,39 @@
 <?php
 //add photo for website
+session_start();
+
 include '../config/database.php';
-include '../config/mail_config.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(["success" => false, "message" => "Invalid request method"]);
+if (!isset($_SESSION['email'])) {
+    echo json_encode(["success" => false, "message" => "Unauthorized access"]);
     exit;
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+$email = $_SESSION['email'];
+$query = "SELECT user_id FROM users WHERE email = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
 
-if (!$data) {
-    echo json_encode(["success" => false, "message" => "Data not received"]);
+if (!$user) {
+    echo json_encode(["success" => false, "message" => "User not found"]);
     exit;
 }
 
-$user_id = $data['user_id'] ?? null;
-$profile_photo = $_FILES['profile_photo'] ?? null;
+$user_id = $user['user_id'];
 
-if (empty($user_id)) {
-    echo json_encode(["success" => false, "message" => "User ID required"]);
-    exit;
-}
-
-if (!$profile_photo || !isset($profile_photo['tmp_name'])) {
+if (!isset($_FILES['profile_photo']) || !isset($_FILES['profile_photo']['tmp_name'])) {
     echo json_encode(["success" => false, "message" => "Profile photo required"]);
     exit;
 }
 
-$image_info = getimagesize($profile_photo['tmp_name']);
+$profile_photo = $_FILES['profile_photo'];
+
 if ($image_info === false) {
     echo json_encode(["success" => false, "message" => "Invalid image file"]);
     exit;

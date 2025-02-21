@@ -1,10 +1,10 @@
 <?php
+session_start();
+
 include '../config/database.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
-
-session_start();
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(["success" => false, "message" => "Unauthorized access. Please log in."]);

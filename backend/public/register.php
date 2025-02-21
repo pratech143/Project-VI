@@ -56,7 +56,7 @@ if ($user_result->num_rows > 0) {
 $otp = rand(100000, 999999);
 $_SESSION['otp'][$email] = [
     'otp' => $otp,
-    'expiry' => time() + (15 * 60)
+    'expiry' => time() + (5 * 60)
 ];
 
 $_SESSION['registration_data'] = [

@@ -12,7 +12,8 @@ if (!isset($_SESSION['email'])) {
 $email = $_SESSION['email']; 
 
 $query = "SELECT 
-    u.user_id, u.voter_id, g.name, g.dob, g.gender, u.email, 
+    u.user_id, u.voter_id, g.name, g.dob, g.gender, u.email,
+    u.profile_photo, 
     l.location_name, l.district_name, g.ward, u.role 
 FROM users u
 JOIN government_voters g ON u.voter_id = g.voter_id
@@ -30,6 +31,8 @@ if (!$user) {
     exit;
 }
 
+$profile_photo_base64 = $user['profile_photo'] ? base64_encode($user['profile_photo']) : null;
+
 $dashboard_data = [
     "user_info" => [
         "user_id" => $user['user_id'],
@@ -40,6 +43,7 @@ $dashboard_data = [
         "location" => $user['location_name'] . ', ' . $user['district_name'],
         "ward" => $user['ward'],
         "email" => $user['email'],
+        "profile_photo" => $profile_photo_base64 ? "data:image/jpeg;base64," . $profile_photo_base64 : null,
     ],
     "role" => $user['role'],
     "options" => [
