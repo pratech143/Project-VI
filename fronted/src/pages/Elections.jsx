@@ -30,15 +30,15 @@ export function Elections() {
   const { elections } = useSelector((state) => state.election);
   const [expandedPost, setExpandedPost] = useState(null);
   const [role, setRole] = useState('');
+  const[isVoted,setIsVoted]=useState(0)
 
-  useEffect(() => {
+  
     const fetchSession = async () => {
       try {
-        const response = await baseApi.get("/config/get_user_session.php", {
-          withCredentials: true, // Ensure cookies are sent
-        });
+        const response = await baseApi.get("/config/get_user_session.php")
   
         console.log("Session response:", response.data); // Debugging
+        console.log(response)
   
         if (response.data.voter_id) {
           setVoterId(response.data.voter_id);
@@ -54,11 +54,11 @@ export function Elections() {
       } catch (error) {
         console.error("Error fetching session:", error);
       }
-    };
-  
-    fetchSession();
-  }, []);
-
+    }
+ 
+  useEffect(() => { 
+    fetchSession()
+  },[]);
   useEffect(() => {
     if (voterId) {
       dispatch(fetchElections({ voter_id: voterId }));
@@ -68,6 +68,23 @@ export function Elections() {
   const toggleExpand = (post) => {
     setExpandedPost(expandedPost === post ? null : post);
   };
+
+  
+    const votingConfirmation=async()=>{
+      try{
+    const response = await baseApi.get("function/is_voted.php")
+    console.log(response)
+   setIsVoted( response.data.is_voted)
+  }catch(error){
+    console.log(error)
+  }
+}
+  
+
+
+useEffect(()=>{
+  votingConfirmation()
+},[])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -189,14 +206,14 @@ export function Elections() {
                     </div>
                   </CardContent>
                   <CardFooter className="border-t border-gray-700 pt-4 flex justify-between">
-                    {role !== 'admin' && (
+                    {role !== 'admin'  && (
                       <Button
                         className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center"
-                        disabled={election.status.toLowerCase() !== "ongoing"}
+                        disabled={election.status.toLowerCase() !== "ongoing" || isVoted==1}
                       >
                         <Link to="/votingpage">
                           {" "}
-                          <Vote className="w-4 h-4 mr-2" /> Cast Vote{" "}
+                          <Vote className="w-4 h-4 mr-2" /> {isVoted==1 ? "You have already voted":"Cast Votes"}
                         </Link>
                       </Button>
                     )}

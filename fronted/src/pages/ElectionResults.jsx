@@ -66,7 +66,7 @@ const ElectionResults = () => {
               </div>
               <div className="flex items-center space-x-2 text-gray-600">
                 <Users className="h-5 w-5" />
-                <span>{selectedElection.turnout || "TBD"}% Turnout</span>
+                <span>Status: {selectedElection.status || "TBD"}</span>
               </div>
             </div>
 

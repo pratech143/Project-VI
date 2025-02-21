@@ -34,7 +34,7 @@ function App() {
           <Route
             path="elections"
             element={
-              <ProtectedRoute allowedRoles={['voter']}>
+               <ProtectedRoute allowedRoles={['voter']}>
                 <Elections />
               </ProtectedRoute>
             }

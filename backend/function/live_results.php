@@ -22,6 +22,22 @@ $election_query = $conn->prepare("
     FROM elections 
     WHERE status = 'Ongoing'
 ");
+$election_query = $conn->prepare("
+    SELECT 
+        e.election_id, 
+        e.name AS election_name, 
+        e.location_id, 
+        e.location_type, 
+        e.ward, 
+        e.start_date, 
+        e.end_date, 
+        e.status,
+        l.location_name, 
+        l.district_name
+    FROM elections e
+    JOIN locations l ON e.location_id = l.location_id
+    WHERE e.status = 'Ongoing'
+");
 $election_query->execute();
 $election_result = $election_query->get_result();
 
@@ -36,8 +52,10 @@ $location_wards = [];
 while ($row = $election_result->fetch_assoc()) {
     $ongoing_elections[$row['election_id']] = [
         "election_id" => $row['election_id'],
-        "election_name" => $row['name'],
-        "location_type" => $row['location_type'],
+        "election_name" => $row['election_name'],
+        "location" => $row['district_name'] . ', ' . $row['location_name'].',Ward:'.$row['ward'],
+        "date" => $row['start_date']." TO ".$row['end_date'],
+        "status" => $row['status'],
         "results" => []
     ];
 

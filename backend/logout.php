@@ -12,7 +12,6 @@ if (isset($_SESSION)) {
         setcookie(
             session_name(), 
             '', 
-            time() - 3600,
             $params["path"],
             $params["domain"], 
             $params["secure"], 
