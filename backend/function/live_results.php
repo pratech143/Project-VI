@@ -18,7 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $election_query = $conn->prepare("
-    SELECT election_id, name FROM elections WHERE status = 'Ongoing'
+    SELECT election_id, name, location_id, location_type, ward
+    FROM elections 
+    WHERE status = 'Ongoing'
 ");
 $election_query->execute();
 $election_result = $election_query->get_result();
@@ -29,22 +31,46 @@ if ($election_result->num_rows === 0) {
 }
 
 $ongoing_elections = [];
+$location_wards = [];
+
 while ($row = $election_result->fetch_assoc()) {
     $ongoing_elections[$row['election_id']] = [
         "election_id" => $row['election_id'],
         "election_name" => $row['name'],
+        "location_type" => $row['location_type'],
         "results" => []
     ];
+
+    $location_wards[$row['location_id']][] = $row['election_id'];
 }
 
 $query = "
-    SELECT e.election_id, e.name AS election_name, c.candidate_id, c.candidate_name, c.party_name, c.post_id, p.post_name, COUNT(v.vote_id) AS vote_count
+    SELECT 
+        e.election_id, 
+        e.location_id, 
+        e.ward,
+        l.location_type,
+        c.candidate_id, 
+        c.candidate_name, 
+        c.party_name, 
+        c.post_id, 
+        p.post_name, 
+        COUNT(v.vote_id) AS vote_count
     FROM elections e
-    JOIN candidates c ON c.location_id = e.location_id
+    JOIN candidates c ON c.location_id = e.location_id AND (c.ward = e.ward OR c.post_id IN (SELECT post_id FROM posts WHERE post_name IN ('Mayor', 'Deputy Mayor')))
     JOIN posts p ON c.post_id = p.post_id
+    JOIN locations l ON e.location_id = l.location_id
     LEFT JOIN votes v ON c.candidate_id = v.candidate_id AND v.election_id = e.election_id
     WHERE e.status = 'Ongoing'
-    GROUP BY e.election_id, c.candidate_id, c.candidate_name, c.party_name, c.post_id, p.post_name
+    GROUP BY 
+        e.election_id, 
+        c.candidate_id, 
+        c.candidate_name, 
+        c.party_name, 
+        c.post_id, 
+        p.post_name, 
+        e.ward, 
+        l.location_type
     ORDER BY e.election_id, c.post_id, vote_count DESC
 ";
 
@@ -52,23 +78,69 @@ $stmt = $conn->prepare($query);
 $stmt->execute();
 $result = $stmt->get_result();
 
+$mayor_deputy_results = [];
+
 while ($row = $result->fetch_assoc()) {
     $election_id = $row['election_id'];
     $post_id = $row['post_id'];
+    $location_id = $row['location_id'];
+    $candidate_id = $row['candidate_id'];
+    $ward = $row['ward'];
 
-    if (!isset($ongoing_elections[$election_id]['results'][$post_id])) {
-        $ongoing_elections[$election_id]['results'][$post_id] = [
-            "post_name" => $row['post_name'],
-            "candidates" => []
+    if ($row['post_name'] === 'Mayor' || $row['post_name'] === 'Deputy Mayor') {
+        $key = "{$location_id}_{$post_id}_{$candidate_id}";
+
+        if (!isset($mayor_deputy_results[$key])) {
+            $mayor_deputy_results[$key] = [
+                "candidate_id" => $candidate_id,
+                "candidate_name" => $row['candidate_name'],
+                "party_name" => $row['party_name'],
+                "vote_count" => 0,
+                "post_name" => $row['post_name'],
+                "location_id" => $location_id
+            ];
+        }
+
+        $mayor_deputy_results[$key]["vote_count"] += intval($row['vote_count']);
+    } else {
+        if (!isset($ongoing_elections[$election_id]['results'][$post_id])) {
+            $ongoing_elections[$election_id]['results'][$post_id] = [
+                "post_name" => $row['post_name'],
+                "candidates" => []
+            ];
+        }
+
+        $ongoing_elections[$election_id]['results'][$post_id]['candidates'][] = [
+            "candidate_id" => $candidate_id,
+            "candidate_name" => $row['candidate_name'],
+            "party_name" => $row['party_name'],
+            "vote_count" => intval($row['vote_count'])
         ];
     }
+}
 
-    $ongoing_elections[$election_id]['results'][$post_id]['candidates'][] = [
-        "candidate_id" => $row['candidate_id'],
-        "candidate_name" => $row['candidate_name'],
-        "party_name" => $row['party_name'],
-        "vote_count" => intval($row['vote_count'])
-    ];
+foreach ($mayor_deputy_results as $key => $data) {
+    $location_id = $data['location_id'];
+    
+    if (!isset($location_wards[$location_id])) {
+        continue;
+    }
+
+    foreach ($location_wards[$location_id] as $election_id) {
+        if (!isset($ongoing_elections[$election_id]['results'][$data["post_name"]])) {
+            $ongoing_elections[$election_id]['results'][$data["post_name"]] = [
+                "post_name" => $data["post_name"],
+                "candidates" => []
+            ];
+        }
+
+        $ongoing_elections[$election_id]['results'][$data["post_name"]]["candidates"][] = [
+            "candidate_id" => $data["candidate_id"],
+            "candidate_name" => $data["candidate_name"],
+            "party_name" => $data["party_name"],
+            "vote_count" => $data["vote_count"]
+        ];
+    }
 }
 
 $final_results = array_values($ongoing_elections);
