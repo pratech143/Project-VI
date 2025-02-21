@@ -95,7 +95,6 @@ foreach ($votes as $vote) {
             ];
         }
     } else {
-        // Single candidate case
         $flattened_votes[] = $vote;
     }
 }
@@ -107,12 +106,10 @@ $post_counts = [
 
 $valid_votes = [];
 
-// Track the number of selected candidates for each post
 foreach ($votes as $vote) {
     $candidate_id = $vote['candidate_id'];
     $post_id = $vote['post_id'];
 
-    // Get post name from the database (make sure it's being fetched correctly)
     $post_query = $conn->prepare("SELECT post_name FROM posts WHERE post_id = ?");
     $post_query->bind_param("i", $post_id);
     $post_query->execute();
@@ -122,7 +119,7 @@ foreach ($votes as $vote) {
     // Handle "Ward Member" votes with a limit of 4 candidates
     if ($post_name === 'Ward Member') {
         if (count($post_counts['Ward Member']) >= 4) {
-            continue; // Do not accept more than 4 candidates for "Ward Member"
+            continue;
         }
         $post_counts['Ward Member'][] = $candidate_id;
     } else {
@@ -132,13 +129,11 @@ foreach ($votes as $vote) {
     $valid_votes[] = $vote;
 }
 
-// Ensure you are validating that there are exactly 4 "Ward Member" votes
 if (count($post_counts['Ward Member']) !== 4) {
     echo json_encode(["success" => false, "message" => "You must select exactly 4 Ward Members."]);
     exit;
 }
 
-// Process each vote and insert into the database
 $success_votes = [];
 $failed_votes = [];
 
@@ -156,12 +151,10 @@ try {
         $candidate_result = $candidate_check->get_result();
 
         if ($candidate_result->num_rows === 0) {
-            // If candidate is not found, continue and mark as failed vote
             $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Candidate not found for this post"];
             continue;
         }
 
-        // Check if the user has already voted for this post
         $vote_check = $conn->prepare("
             SELECT vote_id FROM votes WHERE voter_id = ? AND election_id = ? AND post_id = ?
         ");
@@ -199,7 +192,6 @@ try {
         }
     }
 
-    // Commit the transaction
     $conn->commit();
 } catch (Exception $e) {
     $conn->rollback();
