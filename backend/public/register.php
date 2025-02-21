@@ -66,7 +66,7 @@ $_SESSION['registration_data'] = [
 ];
 
 $subject = "Email Verification for Election System";
-$message = "Your OTP code is: $otp. It will expire in 15 minutes.";
+$message = "Your OTP code is: $otp. It will expire in 5 minutes.";
 
 if (sendEmail($email, $subject, $message)) {
     echo json_encode([
