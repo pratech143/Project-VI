@@ -12,7 +12,7 @@ if (!isset($_SESSION['email'])) {
 }
 
 $email = $_SESSION['email'];
-$query = "SELECT user_id FROM users WHERE email = ?";
+$query = "SELECT user_id, profile_photo FROM users WHERE email = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("s", $email);
 $stmt->execute();
@@ -25,13 +25,9 @@ if (!$user) {
 }
 
 $user_id = $user['user_id'];
+$old_photo = $user['profile_photo'];
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(["success" => false, "message" => "Invalid request method"]);
-    exit;
-}
-
-if (!isset($_FILES['profile_photo']) || !isset($_FILES['profile_photo']['tmp_name'])) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['profile_photo']) || !isset($_FILES['profile_photo']['tmp_name'])) {
     echo json_encode(["success" => false, "message" => "Profile photo required"]);
     exit;
 }
@@ -49,22 +45,43 @@ if ($profile_photo['size'] > 12 * 1024 * 1024) {
     exit;
 }
 
-$image_data = file_get_contents($profile_photo['tmp_name']);
+$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+if (!in_array($image_info['mime'], $allowed_types)) {
+    echo json_encode(["success" => false, "message" => "Only JPG, PNG, and GIF images are allowed"]);
+    exit;
+}
+
+$upload_dir = __DIR__ . "/uploads/";
+if (!is_dir($upload_dir)) {
+    mkdir($upload_dir, 0777, true); // Create Dir
+}
+
+$file_ext = pathinfo($profile_photo["name"], PATHINFO_EXTENSION);
+$file_name = "profile_" . $user_id . "_" . time() . "." . $file_ext;
+$file_path = $upload_dir . $file_name;
+
+if (!move_uploaded_file($profile_photo["tmp_name"], $file_path)) {
+    echo json_encode(["success" => false, "message" => "Failed to upload photo. Try again."]);
+    exit;
+}
+
+if ($old_photo && file_exists($upload_dir . $old_photo)) {
+    unlink($upload_dir . $old_photo);
+}
 
 $stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE user_id = ?");
-$stmt->bind_param("bi", $null_value = NULL, $user_id);
-$stmt->send_long_data(0, $image_data); 
+$stmt->bind_param("si", $file_name, $user_id);
 $stmt->execute();
+
+$file_url = "http://localhost/Project-VI/Project-VI/backend/uploads/" . $file_name;
 
 if ($stmt->affected_rows > 0) {
     echo json_encode([
         "success" => true,
-        "message" => "Profile updated successfully."
+        "message" => "Profile updated successfully.",
+        "file_url" => $file_url
     ]);
 } else {
-    echo json_encode([
-        "success" => false,
-        "message" => "Failed to update profile. Try again."
-    ]);
+    echo json_encode(["success" => false, "message" => "Failed to update profile. Try again."]);
 }
 ?>
