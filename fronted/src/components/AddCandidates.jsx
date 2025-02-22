@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { fetchLocations } from "@/Redux/slice/electionSlice";
 import candidatesSlice from "@/Redux/slice/addCandidateSlice";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, } from "react-redux";
 import { addCandidates, resetState } from "@/Redux/slice/addCandidateSlice";
 
 const posts = [
@@ -31,6 +31,7 @@ export default function AddCandidates() {
     party: "",
     locationId: "",
     ward: "",
+    location_type:""
   });
   const [errors, setErrors] = useState({});
   const [districtData, setDistrictData] = useState({});
@@ -131,9 +132,23 @@ export default function AddCandidates() {
   };
 
   const submitCandidates = async () => {
+    // Structure the data in the format expected by addCandidate.php
+    const formattedData = Object.keys(candidates).reduce((acc, postId) => {
+      acc[postId] = candidates[postId].map(candidate => ({
+        name: candidate.name,
+        party: candidate.party,
+        locationId: candidate.locationId,
+        location_type: candidate.location_type,
+        ward: candidate.ward
+      }));
+      return acc;
+    }, {});
+  
     try {
-      const response = await dispatch(addCandidates(candidates)).unwrap();
+    
+      const response = await dispatch(addCandidates(formattedData)).unwrap();
       console.log("Response from PHP:", response);
+  
       if (response.success) {
         toast.success(response.message);
         dispatch(resetState());
@@ -141,7 +156,7 @@ export default function AddCandidates() {
         toast.error(response.message);
       }
     } catch (error) {
-      toast.error("Error adding candidate: ",error);
+      toast.error("Error adding candidate: ", error);
     }
   };
   

@@ -5,22 +5,28 @@ export const addCandidates = createAsyncThunk(
   "candidates/addCandidates",
   async (candidates, { rejectWithValue }) => {
     try {
-      const response = await baseApi.post("admin/add_candidate.php", {
-        body: JSON.stringify(candidates),
+      // Directly sending the candidates object (without wrapping it in a "candidates" key)
+      const response = await baseApi.post("admin/add_candidate.php", candidates, {
+        headers: {
+          "Content-Type": "application/json",  // Ensure this header is set for proper JSON processing
+        },
       });
 
-      const data = response.data; 
+      const data = response.data;
 
+      // Check if the API response was successful
       if (data.success) {
-        return data;
+        return data;  // Return success data
       } else {
-        return rejectWithValue(data.errors); 
+        return rejectWithValue(data.errors); // Reject if there are errors
       }
     } catch (error) {
-      return rejectWithValue(error.message || "Server error"); 
+      return rejectWithValue(error.message || "Server error"); // Handle any network or server errors
     }
   }
 );
+
+
 
 const candidatesSlice = createSlice({
   name: "candidates",
