@@ -1,7 +1,5 @@
 <?php
-//add photo for website
 session_start();
-
 include '../config/database.php';
 include '../config/handle_cors.php';
 
@@ -13,7 +11,7 @@ if (!isset($_SESSION['email'])) {
 }
 
 $email = $_SESSION['email'];
-$query = "SELECT user_id FROM users WHERE email = ?";
+$query = "SELECT user_id, profile_photo FROM users WHERE email = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("s", $email);
 $stmt->execute();
@@ -26,21 +24,18 @@ if (!$user) {
 }
 
 $user_id = $user['user_id'];
+$old_photo = $user['profile_photo'];
 
-if (!isset($_FILES['profile_photo']) || !isset($_FILES['profile_photo']['tmp_name'])) {
-    echo json_encode(["success" => false, "message" => "Profile photo required"]);
+if (!isset($_FILES['profile_photo']) || $_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
+    echo json_encode(["success" => false, "message" => "No file uploaded or upload error"]);
     exit;
 }
 
 $profile_photo = $_FILES['profile_photo'];
+$image_info = getimagesize($profile_photo['tmp_name']);
 
-if ($image_info === false) {
+if (!$image_info) {
     echo json_encode(["success" => false, "message" => "Invalid image file"]);
-    exit;
-}
-
-if ($profile_photo['size'] > 12 * 1024 * 1024) {
-    echo json_encode(["success" => false, "message" => "File size > 12 MB"]);
     exit;
 }
 
@@ -50,12 +45,17 @@ if (!in_array($image_info['mime'], $allowed_types)) {
     exit;
 }
 
-$upload_dir = __DIR__ . "/uploads/";
-if (!is_dir($upload_dir)) {
-    mkdir($upload_dir, 0777, true);//Create Dir
+if ($profile_photo['size'] > 12 * 1024 * 1024) { // 12MB limit
+    echo json_encode(["success" => false, "message" => "File size exceeds 12MB"]);
+    exit;
 }
 
-$file_ext = pathinfo($profile_photo["name"], PATHINFO_EXTENSION);
+$upload_dir = __DIR__ . "/uploads/";
+if (!is_dir($upload_dir)) {
+    mkdir($upload_dir, 0777, true);
+}
+
+$file_ext = strtolower(pathinfo($profile_photo["name"], PATHINFO_EXTENSION));
 $file_name = "profile_" . $user_id . "_" . time() . "." . $file_ext;
 $file_path = $upload_dir . $file_name;
 
@@ -64,11 +64,16 @@ if (!move_uploaded_file($profile_photo["tmp_name"], $file_path)) {
     exit;
 }
 
+// Remove old profile photo if it exists
+if ($old_photo && file_exists($upload_dir . $old_photo)) {
+    unlink($upload_dir . $old_photo);
+}
+
 $stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE user_id = ?");
 $stmt->bind_param("si", $file_name, $user_id);
 $stmt->execute();
 
-$file_url = "http://localhost/Project-VI/Project-VI/backend/uploads/" . $file_name;
+$file_url = "http://localhost/Project-VI/Project-VI/backend/public/uploads/" . $file_name;
 
 if ($stmt->affected_rows > 0) {
     echo json_encode([
@@ -79,5 +84,4 @@ if ($stmt->affected_rows > 0) {
 } else {
     echo json_encode(["success" => false, "message" => "Failed to save photo in database."]);
 }
-
 ?>
