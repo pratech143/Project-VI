@@ -17,11 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$election_query = $conn->prepare("
-    SELECT election_id, name, location_id, location_type, ward
-    FROM elections 
-    WHERE status = 'Ongoing'
-");
+// $election_query = $conn->prepare("
+//     SELECT election_id, name, location_id, location_type, ward
+//     FROM elections 
+//     WHERE status = 'Ongoing'
+// ");
 $election_query = $conn->prepare("
     SELECT 
         e.election_id, 
