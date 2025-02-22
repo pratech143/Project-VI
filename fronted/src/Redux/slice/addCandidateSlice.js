@@ -1,64 +1,47 @@
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import baseApi from '@/api/baseApi';
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-// Define API URL (adjust based on your backend)
-const API_URL = 'http://your-backend-url.com/api/add_candidate.php';
-
-// Async thunk for adding a candidate
-export const addCandidate = createAsyncThunk(
-  'candidates/addCandidate',
-  async (candidateData, { rejectWithValue }) => {
+export const addCandidates = createAsyncThunk(
+  'candidates/addCandidates', // action type string
+  async (candidates, { rejectWithValue }) => {
     try {
-      const response = await baseApi.post("admin/add_candidate.php", {
-        candidateData,
+      const response = await baseApi.post('admin/add_candidate.php', {
+        method: 'POST',
+        body: JSON.stringify(candidates),
       });
-
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to add candidate');
+      if (data.success) {
+        return data; // this will be the `action.payload` in the reducer
+      } else {
+        return rejectWithValue(data.errors); // this will be the `action.payload` in rejected case
       }
-
-      return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message); // in case of network errors
     }
   }
 );
 
-const addCandidateSlice = createSlice({
-  name: 'candidates',
-  initialState: {
-    loading: false,
-    success: false,
-    error: null,
-  },
-  reducers: {
-    resetState: (state) => {
-      state.loading = false;
-      state.success = false;
-      state.error = null;
-    },
-  },
+const candidatesSlice = createSlice({
+  name: "candidates",
+  initialState: { loading: false, error: null, success: null },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(addCandidate.pending, (state) => {
+      .addCase(addCandidates.pending, (state) => {
         state.loading = true;
-        state.success = false;
         state.error = null;
       })
-      .addCase(addCandidate.fulfilled, (state, action) => {
+      .addCase(addCandidates.fulfilled, (state, action) => {
         state.loading = false;
-        state.success = true;
-        state.error = null;
+        state.success = action.payload.message;
       })
-      .addCase(addCandidate.rejected, (state, action) => {
+      .addCase(addCandidates.rejected, (state, action) => {
         state.loading = false;
-        state.success = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetState } = addCandidateSlice.actions;
-export default addCandidateSlice.reducer;
+export const { resetState } = candidatesSlice.actions;
+export default candidatesSlice.reducer;
