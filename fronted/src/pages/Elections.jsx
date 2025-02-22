@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchElections } from "../Redux/slice/electionSlice";
+import { fetchElections,deleteElection } from "../Redux/slice/electionSlice";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -30,35 +30,37 @@ export function Elections() {
   const { elections } = useSelector((state) => state.election);
   const [expandedPost, setExpandedPost] = useState(null);
   const [role, setRole] = useState('');
-  const[isVoted,setIsVoted]=useState(0)
+  const [isVoted, setIsVoted] = useState(0)
+  
 
-  
-    const fetchSession = async () => {
-      try {
-        const response = await baseApi.get("/config/get_user_session.php")
-  
-        console.log("Session response:", response.data); // Debugging
-        console.log(response)
-  
-        if (response.data.voter_id) {
-          setVoterId(response.data.voter_id);
-        } else {
-          console.warn("Voter ID not found in session:", response.data);
-        }
-  
-        if (response.data.role) {
-          setRole(response.data.role);
-        } else {
-          console.warn("Role not found in session:", response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching session:", error);
+
+
+  const fetchSession = async () => {
+    try {
+      const response = await baseApi.get("/config/get_user_session.php")
+
+      console.log("Session response:", response.data); // Debugging
+      console.log(response)
+
+      if (response.data.voter_id) {
+        setVoterId(response.data.voter_id);
+      } else {
+        console.warn("Voter ID not found in session:", response.data);
       }
+
+      if (response.data.role) {
+        setRole(response.data.role);
+      } else {
+        console.warn("Role not found in session:", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching session:", error);
     }
- 
-  useEffect(() => { 
+  }
+
+  useEffect(() => {
     fetchSession()
-  },[]);
+  }, []);
   useEffect(() => {
     if (voterId) {
       dispatch(fetchElections({ voter_id: voterId }));
@@ -69,22 +71,22 @@ export function Elections() {
     setExpandedPost(expandedPost === post ? null : post);
   };
 
-  
-    const votingConfirmation=async()=>{
-      try{
-    const response = await baseApi.get("function/is_voted.php")
-    console.log(response)
-   setIsVoted( response.data.is_voted)
-  }catch(error){
-    console.log(error)
+
+  const votingConfirmation = async () => {
+    try {
+      const response = await baseApi.get("function/is_voted.php")
+      console.log(response)
+      setIsVoted(response.data.is_voted)
+    } catch (error) {
+      console.log(error)
+    }
   }
-}
-  
 
 
-useEffect(()=>{
-  votingConfirmation()
-},[])
+
+  useEffect(() => {
+    votingConfirmation()
+  }, [])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -206,15 +208,27 @@ useEffect(()=>{
                     </div>
                   </CardContent>
                   <CardFooter className="border-t border-gray-700 pt-4 flex justify-between">
-                    {role !== 'admin'  && (
+                    {role !== 'admin' && (
                       <Button
                         className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center"
-                        disabled={election.status.toLowerCase() !== "ongoing" || isVoted==1}
+                        disabled={election.status.toLowerCase() !== "ongoing" || isVoted == 1}
                       >
                         <Link to="/votingpage">
                           {" "}
-                          <Vote className="w-4 h-4 mr-2" /> {isVoted==1 ? "You have already voted":"Cast Votes"}
+                          <Vote className="w-4 h-4 mr-2" /> {isVoted == 1 ? "You have already voted" : "Cast Votes"}
                         </Link>
+                      </Button>
+                    )}
+                    {console.log(election.election_id)}
+
+                    {role == 'admin' && (
+                      <Button
+                        className="bg-red-600 hover:bg-red-700 text-white flex items-center"
+                        disabled={election.status.toLowerCase() !== "upcoming"}
+                        onClick={()=>dispatch(deleteElection({electionId:election.election_id}))}
+                        
+                      >
+                        Delete
                       </Button>
                     )}
 
@@ -222,8 +236,8 @@ useEffect(()=>{
                       {election.status.toLowerCase() === "ongoing"
                         ? "Voting is open"
                         : election.status.toLowerCase() === "upcoming"
-                        ? "Coming soon"
-                        : "Voting ended"}
+                          ? "Coming soon"
+                          : "Voting ended"}
                     </span>
                   </CardFooter>
                 </Card>

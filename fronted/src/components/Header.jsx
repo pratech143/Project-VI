@@ -11,7 +11,7 @@ export default function Header() {
     const role = localStorage.getItem("role");
     const dispatch = useDispatch();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [profileOpen, setProfileOpen] = useState(false); // State for profile dropdown
+    const [profileOpen, setProfileOpen] = useState(false);
 
     const handleSignOut = async () => {
         try {
@@ -27,8 +27,8 @@ export default function Header() {
         navigate("/auth/login");
     };
 
-    const handleUploadPicture = () => {
-        toast.info("Upload picture functionality coming soon!");
+    const goToProfile = () => {
+        navigate("/profile")
     };
 
     return (
@@ -38,15 +38,15 @@ export default function Header() {
                     <img src="/logo.png" className="mr-3 h-12" alt="Logo" />
                 </Link>
 
-                {/* Mobile Menu Button */}
-                <button 
-                    onClick={() => setMenuOpen(!menuOpen)} 
+
+                <button
+                    onClick={() => setMenuOpen(!menuOpen)}
                     className="lg:hidden text-gray-700"
                 >
                     <Menu className="h-6 w-6" />
                 </button>
 
-                {/* Navbar Items - Large Screen */}
+
                 <div className="hidden lg:flex items-center space-x-6">
                     <ul className="flex space-x-6 font-medium">
                         <li>
@@ -106,9 +106,20 @@ export default function Header() {
                                 </NavLink>
                             </li>
                         )}
+                        {role === "admin" && (
+                            <li>
+                                <NavLink
+                                    to="/addcandidates"
+                                    className="text-gray-700 hover:text-orange-700"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    Add Candidates
+                                </NavLink>
+                            </li>
+                        )}
                     </ul>
 
-                    {/* Profile Dropdown */}
+
                     {email ? (
                         <div className="relative">
                             <button
@@ -122,11 +133,11 @@ export default function Header() {
                             {profileOpen && (
                                 <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md">
                                     <button
-                                        onClick={handleUploadPicture}
+                                        onClick={goToProfile}
                                         className="block w-full px-4 py-2 text-gray-700 hover:bg-gray-50"
                                     >
-                                        <Upload className="h-4 w-4 mr-2 inline-block" />
-                                        Upload Picture
+                                        <User className="h-4 w-4 mr-2 inline-block" />
+                                        Profile
                                     </button>
                                     <button
                                         onClick={handleSignOut}
@@ -203,6 +214,18 @@ export default function Header() {
                                     onClick={() => setMenuOpen(false)}
                                 >
                                     Create Election
+                                </NavLink>
+                            </li>
+                        )}
+
+                        {role === "admin" && (
+                            <li>
+                                <NavLink
+                                    to="/addcandidates"
+                                    className="text-gray-700 hover:text-orange-700"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    Add Candidates
                                 </NavLink>
                             </li>
                         )}

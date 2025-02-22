@@ -13,6 +13,8 @@ import  ElectionResults  from './pages/electionResults';
 import VotingPage from './pages/VotingPage';
 import { ForgotPasswordPage } from './pages/PasswordReset';
 import ProtectedRoute from './components/ProtectedRoutes'; // Import ProtectedRoute component
+import { Profile } from './pages/Profile';
+import AddCandidates from './components/AddCandidates';
 
 function App() {
   
@@ -29,6 +31,7 @@ function App() {
           <Route path="auth/register" element={<AuthPage type="register" />} />
           <Route path="votingpage" element={<VotingPage />} />
           <Route path="results" element={<ElectionResults />} />
+        
 
           {/* Protected Routes */}
           <Route
@@ -39,11 +42,24 @@ function App() {
               </ProtectedRoute>
             }
           />
+            <Route path="profile" element={
+               <ProtectedRoute allowedRoles={['voter']}>
+              <Profile/>
+              </ProtectedRoute>
+              }/>
           <Route
             path="createelection"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <CreateElection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="addcandidates"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+              <AddCandidates/>
               </ProtectedRoute>
             }
           />

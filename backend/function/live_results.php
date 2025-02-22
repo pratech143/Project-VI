@@ -7,10 +7,10 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["success" => false, "message" => "Unauthorized access. Please log in."]);
-    exit;
-}
+// if (!isset($_SESSION['user_id'])) {
+//     echo json_encode(["success" => false, "message" => "Unauthorized access. Please log in."]);
+//     exit;
+// }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);

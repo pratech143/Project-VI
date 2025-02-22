@@ -47,6 +47,28 @@ export const fetchLocations = createAsyncThunk(
     }
   }
 );
+export const deleteElection=createAsyncThunk(
+  "election/deleteElection",
+  async({electionId},{rejectWithValue})=>{
+    try {
+      const response = await baseApi.delete("admin/remove_election.php", {
+        withCredentials: true,
+        data: { election_id: electionId }, // Ensure the ID is properly sent
+      });
+    
+      const data = response.data;
+    
+      if (!data.success) {
+        throw new Error(data.message || "Failed to delete election!");
+      }
+    
+      return data.message;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Cannot delete election");
+    }
+    
+  }
+)
 
 export const fetchElections = createAsyncThunk(
   "election/fetchElections",

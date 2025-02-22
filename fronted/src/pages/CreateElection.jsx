@@ -9,6 +9,11 @@ import {
   CalendarDays,
   FileText,
   MapPin,
+  Building2,
+  Building,
+  Users,
+  ChevronRight,
+  Award
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,15 +39,16 @@ import {
   SelectValue,
   SelectContent,
 } from "@/components/ui/select";
-import { fetchLogin } from "@/Redux/slice/authSlice";
+
 
 export function CreateElection() {
   const dispatch = useDispatch();
   const { isLoading, errorMessage } = useSelector((state) => state.election);
 
   const [open, setOpen] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [step, setStep] = useState(1);
   const [electionData, setElectionData] = useState(null);
+  const [adminPassword, setAdminPassword] = useState("");
 
   const [districtData, setDistrictData] = useState({});
   const [locations, setLocations] = useState([]);
@@ -50,6 +56,7 @@ export function CreateElection() {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedWards, setSelectedWards] = useState("");
+
 
   const form = useForm({
     defaultValues: {
@@ -70,7 +77,7 @@ export function CreateElection() {
     watch,
     setValue,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
   } = form;
 
   useEffect(() => {
@@ -117,7 +124,7 @@ export function CreateElection() {
 
   const handleCreateElection = async (data) => {
     setElectionData(data);
-    setShowConfirmation(true);
+    setStep(2);
   };
 
   const handleConfirmCreate = async () => {
@@ -126,28 +133,18 @@ export function CreateElection() {
         withCredentials: true,
       });
 
-      console.log("Session Response:", response.data); // Debugging
-
       if (!response.data.success || response.data.role !== "admin") {
         toast.error("You must be an admin to create an election!");
         return;
       }
 
-      const electionResponse = await dispatch(
-        createElection(electionData)
-      ).unwrap();
-
-      console.log("Election API Response:", electionResponse); // Log API response
-
+      const electionResponse = await dispatch(createElection(electionData)).unwrap();
       setOpen(false);
-      setShowConfirmation(false);
+      setStep(1);
       form.reset();
       toast.success("Election created successfully!");
     } catch (error) {
-      console.error("Election API Error:", error);
-      toast.error(
-        `Failed to create election: ${error.message || "Something went wrong"}`
-      );
+      toast.error(`Failed to create election: ${error.message || "Something went wrong"}`);
     }
   };
 
@@ -163,14 +160,10 @@ export function CreateElection() {
   const handleLocationChange = (location) => {
     setSelectedLocation(location);
     setSelectedWards("");
-    const locationDetails = locations.find(
-      (loc) => loc.location_name === location
-    );
+    const locationDetails = locations.find((loc) => loc.location_name === location);
     setValue("location_name", location);
     setValue("location_type", locationDetails?.location_type || "");
-    setWards(
-      Array.from({ length: locationDetails?.wards || 0 }, (_, i) => i + 1)
-    );
+    setWards(Array.from({ length: locationDetails?.wards || 0 }, (_, i) => i + 1));
     setValue("ward", "");
   };
 
@@ -180,373 +173,337 @@ export function CreateElection() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col space-y-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-lg p-8 border border-gray-100"
+          >
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  <Building2 className="h-8 w-8 text-indigo-600" />
                   Election Management
                 </h1>
-                <p className="text-gray-500 mt-1">
-                  Create and manage election events
-                </p>
+                <p className="text-gray-500 mt-2 text-lg">Create and manage election events for your district</p>
               </div>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all duration-200 transform hover:scale-105">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Election
+                  <Button
+                    className="bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all duration-300 transform hover:scale-105 
+                             text-base px-6 py-5 rounded-lg flex items-center gap-2"
+                  >
+                    <Plus className="h-5 w-5" />
+                    Create New Election
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[700px] p-8">
                   <form onSubmit={handleSubmit(handleCreateElection)}>
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center text-xl">
-                        <FileText className="h-5 w-5 mr-2 text-indigo-600" />
+                    <DialogHeader className="mb-6">
+                      <DialogTitle className="flex items-center text-2xl font-bold text-gray-900">
+                        <FileText className="h-6 w-6 mr-3 text-indigo-600" />
                         Create New Election
                       </DialogTitle>
-                      <DialogDescription>
-                        Fill in the details below to create a new election
-                        event.
+                      <DialogDescription className="text-base mt-2">
+                        Fill in the details below to create a new election event. All fields are required.
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-6 py-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="district_name"
-                            className="text-sm font-medium"
-                          >
-                            District
-                          </Label>
-                          <Select
-                            id="district_name"
-                            value={selectedDistrict}
-                            onValueChange={handleDistrictChange}
-                            {...form.register("district_name", {
-                              required: "District is required",
-                            })}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select District" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.keys(districtData).map((district) => (
-                                <SelectItem key={district} value={district}>
-                                  {district}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {errors.district_name && (
-                            <p className="text-sm text-red-500">
-                              {errors.district_name.message}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="location_name"
-                            className="text-sm font-medium"
-                          >
-                            Location
-                          </Label>
-                          <Select
-                            id="location_name"
-                            value={selectedLocation}
-                            onValueChange={handleLocationChange}
-                            {...form.register("location_name", {
-                              required: "Location is required",
-                            })}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select Location" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {locations.map((loc) => (
-                                <SelectItem
-                                  key={loc.location_name}
-                                  value={loc.location_name}
-                                >
-                                  {loc.location_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {errors.location_name && (
-                            <p className="text-sm text-red-500">
-                              {errors.location_name.message}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="location_type"
-                            className="text-sm font-medium"
-                          >
-                            Location Type
-                          </Label>
-                          <Input
-                            id="location_type"
-                            value={watch("location_type")}
-                            readOnly
-                            className="bg-gray-50"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="ward" className="text-sm font-medium">
-                            Ward Number
-                          </Label>
-                          <Select
-                            id="ward"
-                            value={selectedWards}
-                            onValueChange={handleWardChange}
-                            {...form.register("ward", {
-                              required: "Ward number is required",
-                            })}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select Ward" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {wards.map((ward) => (
-                                <SelectItem key={ward} value={ward.toString()}>
-                                  {ward}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {errors.ward && (
-                            <p className="text-sm text-red-500">
-                              {errors.ward.message}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-medium">
-                          Election Name
-                        </Label>
-                        <Input
-                          id="name"
-                          {...form.register("name", {
-                            required: "Election name is required",
-                          })}
-                          placeholder="Enter election name"
-                          className="w-full"
-                        />
-                        {errors.name && (
-                          <p className="text-sm text-red-500">
-                            {errors.name.message}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="description"
-                          className="text-sm font-medium"
+                    <AnimatePresence mode="wait">
+                      {step === 1 ? (
+                        <motion.div
+                          key="step1"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className="grid gap-8 py-4"
                         >
-                          Description
-                        </Label>
-                        <Input
-                          id="description"
-                          {...form.register("description", {
-                            required: "Description is required",
-                          })}
-                          placeholder="Enter election description"
-                          className="w-full"
-                        />
-                        {errors.description && (
-                          <p className="text-sm text-red-500">
-                            {errors.description.message}
-                          </p>
-                        )}
-                      </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="district_name" className="text-sm font-medium flex items-center gap-2">
+                                <Building className="h-4 w-4 text-gray-500" />
+                                District
+                              </Label>
+                              <Select
+                                id="district_name"
+                                value={selectedDistrict}
+                                onValueChange={handleDistrictChange}
+                                {...form.register("district_name", { required: "District is required" })}
+                              >
+                                <SelectTrigger className="w-full h-11">
+                                  <SelectValue placeholder="Select District" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.keys(districtData).map((district) => (
+                                    <SelectItem key={district} value={district}>
+                                      {district}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {errors.district_name && (
+                                <p className="text-sm text-red-500 mt-1">{errors.district_name.message}</p>
+                              )}
+                            </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="start_date"
-                            className="text-sm font-medium"
-                          >
-                            Start Date
-                          </Label>
-                          <div className="relative">
-                            <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <div className="space-y-2">
+                              <Label htmlFor="location_name" className="text-sm font-medium flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-gray-500" />
+                                Location
+                              </Label>
+                              <Select
+                                id="location_name"
+                                value={selectedLocation}
+                                onValueChange={handleLocationChange}
+                                {...form.register("location_name", { required: "Location is required" })}
+                              >
+                                <SelectTrigger className="w-full h-11">
+                                  <SelectValue placeholder="Select Location" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {locations.map((loc) => (
+                                    <SelectItem key={loc.location_name} value={loc.location_name}>
+                                      {loc.location_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {errors.location_name && (
+                                <p className="text-sm text-red-500 mt-1">{errors.location_name.message}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="location_type" className="text-sm font-medium flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-gray-500" />
+                                Location Type
+                              </Label>
+                              <Input
+                                id="location_type"
+                                value={watch("location_type")}
+                                readOnly
+                                className="bg-gray-50 h-11"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="ward" className="text-sm font-medium flex items-center gap-2">
+                                <Users className="h-4 w-4 text-gray-500" />
+                                Ward Number
+                              </Label>
+                              <Select
+                                id="ward"
+                                value={selectedWards}
+                                onValueChange={handleWardChange}
+                                {...form.register("ward", { required: "Ward number is required" })}
+                              >
+                                <SelectTrigger className="w-full h-11">
+                                  <SelectValue placeholder="Select Ward" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {wards.map((ward) => (
+                                    <SelectItem key={ward} value={ward.toString()}>
+                                      {ward}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {errors.ward && <p className="text-sm text-red-500 mt-1">{errors.ward.message}</p>}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              Election Name
+                            </Label>
                             <Input
-                              id="start_date"
-                              type="date"
-                              {...form.register("start_date", {
-                                required: "Start date is required",
-                              })}
-                              min={today}
-                              className="pl-10"
+                              id="name"
+                              {...form.register("name", { required: "Election name is required" })}
+                              placeholder="Enter election name"
+                              className="w-full h-11"
+                            />
+                            {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="description" className="text-sm font-medium">
+                              Description
+                            </Label>
+                            <Input
+                              id="description"
+                              {...form.register("description", { required: "Description is required" })}
+                              placeholder="Enter election description"
+                              className="w-full h-11"
+                            />
+                            {errors.description && (
+                              <p className="text-sm text-red-500 mt-1">{errors.description.message}</p>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="start_date" className="text-sm font-medium flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4 text-gray-500" />
+                                Start Date
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="start_date"
+                                  type="date"
+                                  {...form.register("start_date", { required: "Start date is required" })}
+                                  min={today}
+                                  className="pl-4 h-11"
+                                />
+                              </div>
+                              {errors.start_date && (
+                                <p className="text-sm text-red-500 mt-1">{errors.start_date.message}</p>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="end_date" className="text-sm font-medium flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4 text-gray-500" />
+                                End Date
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="end_date"
+                                  type="date"
+                                  {...form.register("end_date", { required: "End date is required" })}
+                                  min={minEndDate}
+                                  className="pl-4 h-11"
+                                />
+                              </div>
+                              {errors.end_date && <p className="text-sm text-red-500 mt-1">{errors.end_date.message}</p>}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="status" className="text-sm font-medium">
+                              Election Status
+                            </Label>
+                            <Input
+                              id="status"
+                              readOnly
+                              value={watch("status")}
+                              className="bg-gray-50 h-11"
                             />
                           </div>
-                          {errors.start_date && (
-                            <p className="text-sm text-red-500">
-                              {errors.start_date.message}
-                            </p>
-                          )}
-                        </div>
 
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="end_date"
-                            className="text-sm font-medium"
-                          >
-                            End Date
-                          </Label>
-                          <div className="relative">
-                            <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input
-                              id="end_date"
-                              type="date"
-                              {...form.register("end_date", {
-                                required: "End date is required",
-                              })}
-                              min={minEndDate}
-                              className="pl-10"
-                            />
+                          <DialogFooter>
+                            <Button
+                              type="submit"
+                              className="bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 text-base px-6 py-5"
+                              disabled={!isValid || isLoading}
+                            >
+                              Review Details
+                              <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
+                          </DialogFooter>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="step2"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="space-y-6"
+                        >
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <div className="flex items-center gap-2 text-amber-700 mb-2">
+                              <AlertCircle className="h-5 w-5" />
+                              <h3 className="font-semibold">Please Review Election Details</h3>
+                            </div>
+                            <p className="text-amber-600 text-sm">
+                              Carefully review all details before confirming the election creation.
+                            </p>
                           </div>
-                          {errors.end_date && (
-                            <p className="text-sm text-red-500">
-                              {errors.end_date.message}
-                            </p>
-                          )}
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="status" className="text-sm font-medium">
-                          Election Status
-                        </Label>
-                        <Input
-                          id="status"
-                          readOnly
-                          value={watch("status")}
-                          className="bg-gray-50"
-                        />
-                      </div>
-                    </div>
+                          <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-6">
+                              <div>
+                                <span className="font-semibold text-gray-700">Name:</span>
+                                <p className="text-gray-600 mt-1">{electionData.name}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-gray-700">Location:</span>
+                                <p className="text-gray-600 mt-1">{electionData.location_name}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-gray-700">District:</span>
+                                <p className="text-gray-600 mt-1">{electionData.district_name}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-gray-700">Ward:</span>
+                                <p className="text-gray-600 mt-1">{electionData.ward}</p>
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-700">Description:</span>
+                              <p className="text-gray-600 mt-1">{electionData.description}</p>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-700">Duration:</span>
+                              <p className="text-gray-600 mt-1">
+                                {format(new Date(electionData.start_date), 'PP')} to{' '}
+                                {format(new Date(electionData.end_date), 'PP')}
+                              </p>
+                            </div>
+                          </div>
 
-                    <DialogFooter>
-                      <Button
-                        type="submit"
-                        className="bg-indigo-600 hover:bg-indigo-700 transition-all duration-200"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Creating..." : "Create Election"}
-                      </Button>
-                    </DialogFooter>
+                          <div className="space-y-3">
+                            <Label htmlFor="admin-password" className="text-sm font-medium text-gray-700">
+                              Admin Password
+                            </Label>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                id="admin-password"
+                                type="password"
+                                value={adminPassword}
+                                onChange={(e) => setAdminPassword(e.target.value)}
+                                className="pl-10 h-11"
+                                placeholder="Enter admin password"
+                              />
+                            </div>
+                          </div>
+
+                          <DialogFooter className="flex justify-between !mt-8">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setStep(1)}
+                              className="mr-2"
+                            >
+                              Back to Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={handleConfirmCreate}
+                              disabled={isLoading || !adminPassword}
+                              className="bg-indigo-600 hover:bg-indigo-700 transition-all duration-300"
+                            >
+                              {isLoading ? "Creating..." : "Confirm & Create"}
+                            </Button>
+                          </DialogFooter>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </form>
                 </DialogContent>
               </Dialog>
             </div>
-          </div>
+          </motion.div>
 
-          <div className=" rounded-lg shadow-none">
+          <div className="rounded-xl">
             <Elections />
           </div>
         </div>
-
-        <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center text-amber-600">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                Confirm Election Creation
-              </DialogTitle>
-              <DialogDescription>
-                Please review the election details before proceeding.
-              </DialogDescription>
-            </DialogHeader>
-
-            {electionData && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="font-semibold">Name:</span>
-                    <p className="text-gray-600">{electionData.name}</p>
-                  </div>
-                  <div>
-                    <span className="font-semibold">Location:</span>
-                    <p className="text-gray-600">
-                      {electionData.location_name}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-semibold">District:</span>
-                    <p className="text-gray-600">
-                      {electionData.district_name}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-semibold">Ward:</span>
-                    <p className="text-gray-600">{electionData.ward}</p>
-                  </div>
-                </div>
-                <div>
-                  <span className="font-semibold">Description:</span>
-                  <p className="text-gray-600">{electionData.description}</p>
-                </div>
-                <div>
-                  <span className="font-semibold">Duration:</span>
-                  <p className="text-gray-600">
-                    {format(new Date(electionData.start_date), "PP")} to{" "}
-                    {format(new Date(electionData.end_date), "PP")}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* <div className="mt-4 space-y-2">
-              <Label
-                htmlFor="admin-password"
-                className="text-sm font-medium text-gray-700"
-              >
-                Admin Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="admin-password"
-                  type="password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="pl-9"
-                  placeholder="Enter admin password"
-                />
-              </div>
-            </div> */}
-
-            <DialogFooter className="mt-6">
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirmation(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleConfirmCreate} disabled={isLoading}>
-                {isLoading ? "Creating..." : "Confirm and Create"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
