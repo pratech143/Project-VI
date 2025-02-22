@@ -1,0 +1,1 @@
+{"user_id":1,"role":"admin","email":"aprabhat80@gmail.com","voter_id":"KTM003","is_voted":1}

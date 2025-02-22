@@ -19,8 +19,8 @@ import { addCandidates, resetState } from "@/Redux/slice/addCandidateSlice";
 const posts = [
   { id: 1, name: "Mayor", color: "bg-blue-500" },
   { id: 2, name: "Deputy Mayor", color: "bg-green-500" },
-  { id: 3, name: "Ward Member", color: "bg-purple-500" },
-  { id: 4, name: "Ward Chairperson", color: "bg-orange-500" },
+  { id: 3, name:  "Ward Chairperson", color: "bg-purple-500" },
+  { id: 4, name: "Ward Member" , color: "bg-orange-500" },
 ];
 
 export default function AddCandidates() {
@@ -86,22 +86,19 @@ export default function AddCandidates() {
   };
 
   const nextStep = () => {
-    if (
-      !candidates[currentPost.id] ||
-      candidates[currentPost.id].length === 0
-    ) {
+    if (!candidates[currentPost.id] || candidates[currentPost.id].length === 0) {
       toast.error("Add at least one candidate before proceeding.");
       return;
     }
-
+  
     if (step < posts.length - 1) {
       setStep(step + 1);
     } else {
       console.log("Final Candidate List:", candidates);
-      addCandidates();
+      submitCandidates(); 
     }
   };
-
+  
   const handleDistrictChange = (district) => {
     setSelectedDistrict(district);
     setLocations(districtData[district] || []);
@@ -133,26 +130,21 @@ export default function AddCandidates() {
     setForm((prev) => ({ ...prev, ward }));
   };
 
-  const addCandidates = async () => {
+  const submitCandidates = async () => {
     try {
-      const response = await dispatch(addCandidates(candidates)).unwrap(); // ✅ Correct thunk action
-
+      const response = await dispatch(addCandidates(candidates)).unwrap();
       console.log("Response from PHP:", response);
-
       if (response.success) {
         toast.success(response.message);
-        dispatch(resetState()); // Reset success/error state after submission
+        dispatch(resetState());
       } else {
         toast.error(response.message);
-        console.error("Errors:", response.errors);
       }
     } catch (error) {
-      console.error("Error from PHP:", error);
-      toast.error(
-        "Error adding candidate: " + (error.message || "Unknown error")
-      );
+      toast.error("Error adding candidate: ",error);
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">

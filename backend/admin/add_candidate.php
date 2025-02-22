@@ -22,7 +22,7 @@ if ($user_result->num_rows === 0) {
 }
 
 $user = $user_result->fetch_assoc();
-if ($user['role'] != 'admin') {
+if ($_SESSION['role'] != 'admin') {
     echo json_encode(["success" => false, "message" => "Access denied. Only admins can add candidates."]);
     exit;
 }
@@ -70,7 +70,7 @@ foreach ($data as $wardNumber => $candidates) {
                     break;
                 default:
                     $errors[] = "Unknown post type: " . $candidate['post_type'];
-                    continue;
+                    continue 2;
             }
         } else {
             $post_id = 3; // Default to Ward Member if post_type is not specified
