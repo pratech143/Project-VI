@@ -22,7 +22,7 @@ if ($user_result->num_rows === 0) {
 }
 
 $user = $user_result->fetch_assoc();
-if ($_SESSION['role'] != 'admin') {
+if ($_SESSION['role'] != 1) {
     echo json_encode(["success" => false, "message" => "Access denied. Only admins can add candidates."]);
     exit;
 }
