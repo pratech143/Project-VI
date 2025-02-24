@@ -41,7 +41,6 @@ if (!$data) {
 $errors = [];
 $successCount = 0;
 
-// Map post_id based on the keys 1, 2, 3, 4
 $post_mapping = [
     1 => "Mayor",
     2 => "Deputy Mayor",
@@ -54,7 +53,6 @@ foreach ($data as $post_id => $candidates) {
         continue;
     }
 
-    // Get the post name from the mapping
     $post_name = isset($post_mapping[$post_id]) ? $post_mapping[$post_id] : null;
 
     if (!$post_name) {
@@ -74,7 +72,6 @@ foreach ($data as $post_id => $candidates) {
             continue;
         }
 
-        // Lookup location_id based on location name and location type
         $location_query = $conn->prepare("
             SELECT location_id FROM locations 
             WHERE location_name = ? AND location_type = ? 
@@ -92,7 +89,6 @@ foreach ($data as $post_id => $candidates) {
         $location_data = $location_result->fetch_assoc();
         $location_id = $location_data['location_id'];
 
-        // Insert the candidate into the database
         $insert_query = $conn->prepare("
             INSERT INTO candidates (candidate_name, party_name, location_id, ward, post_id)
             VALUES (?, ?, ?, ?, ?)

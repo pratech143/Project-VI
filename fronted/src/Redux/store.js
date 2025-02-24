@@ -6,6 +6,7 @@ import votesReducer from "./slice/votesSlice"
 import resultsReducer from "./slice/resultSlice"
 import addCandidateReducer from"./slice/addCandidateSlice"
 import resetReducer from "./slice/resetSlice"
+import profileReducer from"./slice/ProfileSlice"
 export const store=configureStore({
     reducer:{
         auth:authReducer,
@@ -14,7 +15,8 @@ export const store=configureStore({
         votes:votesReducer,
         results:resultsReducer,
         addCandidate:addCandidateReducer,
-        reset:resetReducer
+        reset:resetReducer,
+        profile:profileReducer
 
     }
 });

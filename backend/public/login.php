@@ -1,6 +1,7 @@
 <?php
 include '../config/database.php';
 include '../config/handle_cors.php';
+include '../config/mail_config.php';
 
 header('Content-Type: application/json');
 
@@ -24,7 +25,10 @@ if (empty($email) || empty($password)) {
     exit;
 }
 
-$user_check = $conn->prepare("SELECT user_id, email, password, is_email_verified, role, voter_id, is_voted FROM users WHERE email = ?");
+$clear_expired_stmt = $conn->prepare("UPDATE users SET otp = NULL, otp_expiry = NULL WHERE otp_expiry < NOW()");
+$clear_expired_stmt->execute();
+
+$user_check = $conn->prepare("SELECT user_id, email, password, is_email_verified FROM users WHERE email = ?");
 $user_check->bind_param("s", $email);
 $user_check->execute();
 $user_result = $user_check->get_result();
@@ -46,23 +50,25 @@ if (!$user['is_email_verified']) {
     exit;
 }
 
-if ($user['role'] == 1) {$role = 'admin';} 
-else {$role = 'voter';}
+$otp = rand(100000, 999999);
+$otp_expiry = date('Y-m-d H:i:s', strtotime('+5 minutes'));
 
-session_start();
-$_SESSION['user_id'] = $user['user_id'];
-$_SESSION['role'] = $role;
-$_SESSION['email'] = $email;
-$_SESSION['voter_id'] = $user['voter_id'] ?? null; 
-$_SESSION['is_voted'] = $user['is_voted'];
+$otp_stmt = $conn->prepare("UPDATE users SET otp = ?, otp_expiry = ? WHERE email = ?");
+$otp_stmt->bind_param("sss", $otp, $otp_expiry, $email);
+$otp_stmt->execute();
 
-echo json_encode([
-    "success" => true,
-    "message" => "Login successful",
-    "role" => $role,
-    "user_id" => $user['user_id'],
-    "email" => $user['email'],
-    "voter_id" => $user['voter_id'] ?? null,
-]);
+$subject = "Your Login OTP for Election System";
+$message = "Your OTP for login is: $otp. It will expire in 5 minutes.";
 
+if (sendEmail($email, $subject, $message)) {
+    echo json_encode([
+        "success" => true,
+        "message" => "OTP sent to $email. Please verify."
+    ]);
+} else {
+    echo json_encode([
+        "success" => false,
+        "message" => "Failed to send OTP email."
+    ]);
+}
 ?>

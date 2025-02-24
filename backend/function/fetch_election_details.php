@@ -18,6 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+$update_status_query = "
+    UPDATE elections 
+    SET status = 
+        CASE 
+            WHEN end_date < CURDATE() THEN 'Completed'
+            WHEN start_date <= CURDATE() AND end_date >= CURDATE() THEN 'Ongoing'
+        END
+    WHERE status IN ('Upcoming', 'Ongoing')
+";
+$conn->query($update_status_query);
+
 $user_query = $conn->prepare("SELECT u.role, g.location_id, g.ward FROM users u 
                               JOIN government_voters g ON u.voter_id = g.voter_id
                               WHERE u.voter_id = ?");

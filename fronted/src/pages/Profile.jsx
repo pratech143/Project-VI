@@ -2,15 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserData } from '@/Redux/slice/userSlice';
 import { motion } from 'framer-motion';
-import { Camera, User, X } from 'lucide-react';
+import { Camera, Mail, User, MapPin, Calendar, Users, Edit2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
 
 export function Profile() {
   const dispatch = useDispatch();
-
+  
   useEffect(() => {
     dispatch(fetchUserData())
       .unwrap()
@@ -31,45 +30,18 @@ export function Profile() {
     profile_photo,
   } = useSelector((state) => state.user);
 
-  const [profileImage, setProfileImage] = useState(profile_photo);
+  const [profileImage, setProfileImage] = useState(null);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const fileInputRef = useRef(null);
 
-  const uploadImage = async (file) => {
-    const formData = new FormData();
-    formData.append('profile_photo', file);
-
-    try {
-      const response = await axios.post('http://localhost/Project-VI/Project-VI/backend/public/add_photo.php', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.data.success) {
-        setProfileImage(response.data.file_url);
-        toast.success(response.data.message);
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      toast.error('Error uploading profile picture.');
-    }
-  };
-
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = async () => {
+      reader.onloadend = () => {
         setProfileImage(reader.result);
         setShowImageDialog(false);
-        try {
-          await uploadImage(file);
-          toast.success('Profile picture updated successfully!');
-        } catch (error) {
-          toast.error('Error uploading profile picture');
-        }
+        toast.success('Profile picture updated successfully!');
       };
       reader.readAsDataURL(file);
     }
@@ -77,7 +49,7 @@ export function Profile() {
 
   const removeProfileImage = () => {
     setProfileImage(null);
-    toast.success('Profile picture removed');
+    toast.success("Profile picture removed");
   };
 
   if (isLoading) {
@@ -99,20 +71,31 @@ export function Profile() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl shadow-xl overflow-hidden"
+        >
           <div className="relative h-48 bg-gradient-to-r from-indigo-600 to-purple-600">
             <div className="absolute -bottom-16 left-8">
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden">
                   {profileImage ? (
-                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    <img
+                      src={profileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="w-16 h-16 text-gray-400" />
                     </div>
                   )}
                 </div>
-                <button onClick={() => setShowImageDialog(true)} className="absolute bottom-0 right-0 p-2 bg-indigo-600 rounded-full text-white hover:bg-indigo-700 transition-colors">
+                <button
+                  onClick={() => setShowImageDialog(true)}
+                  className="absolute bottom-0 right-0 p-2 bg-indigo-600 rounded-full text-white hover:bg-indigo-700 transition-colors"
+                >
                   <Camera className="w-5 h-5" />
                 </button>
               </div>
@@ -145,24 +128,47 @@ export function Profile() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Update Profile Picture</DialogTitle>
-              <DialogDescription>Choose a new profile picture or remove the current one.</DialogDescription>
+              <DialogDescription>
+                Choose a new profile picture or remove the current one.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               {profileImage && (
                 <div className="relative w-32 h-32 mx-auto">
-                  <img src={profileImage} alt="Current profile" className="w-full h-full rounded-full object-cover" />
-                  <button onClick={removeProfileImage} className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200">
+                  <img
+                    src={profileImage}
+                    alt="Current profile"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                  <button
+                    onClick={removeProfileImage}
+                    className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200"
+                  >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               )}
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-              <Button onClick={() => fileInputRef.current?.click()} className="bg-indigo-600 hover:bg-indigo-700">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
                 Upload New Picture
               </Button>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowImageDialog(false)}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowImageDialog(false)}
+              >
+                Cancel
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -170,4 +176,3 @@ export function Profile() {
     </div>
   );
 }
-

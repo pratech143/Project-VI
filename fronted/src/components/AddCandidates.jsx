@@ -7,6 +7,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronRight,
+  CloudCog,
   UserPlus,
   MapPin,
 } from "lucide-react";
