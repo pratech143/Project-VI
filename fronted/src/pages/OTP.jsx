@@ -13,7 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { fetchOTP } from "@/Redux/slice/authSlice"; // Import your OTP action
+import { fetchLoginOTP, fetchOTP } from "@/Redux/slice/authSlice";
+import baseApi from "@/api/baseApi"; // assuming your axios instance is imported here
 
 const OTP = () => {
   const [otp, setOtp] = useState("");
@@ -21,15 +22,40 @@ const OTP = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Extract email from navigation state
-  const email = location.state?.email;
 
-  // Get loading state and error message from Redux
+  const email = location.state?.email;
+  const type = location.state?.type || "register";
+
   const { isLoading, errorMessage } = useSelector((state) => state.auth);
 
   const handleChange = (e) => {
     setOtp(e.target.value);
+  };
+
+  const fetchSession = async () => {
+    try {
+      const response = await baseApi.get("/config/get_user_session.php");
+      if (response.data.voter_id) {
+        localStorage.setItem("voterId", response.data.voter_id);
+      }
+
+      if (response.data.role) {
+        localStorage.setItem("role", response.data.role);
+      }
+
+      if (response.data.email) {
+        localStorage.setItem("email", response.data.email);
+      }
+
+      // Assuming you might also want to set the session for voted state or other details
+      if (response.data.voted) {
+        localStorage.setItem("voted", response.data.voted);
+      }
+
+      // Optionally, set other data in localStorage if needed
+    } catch (error) {
+      console.error("Error fetching session:", error);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -37,9 +63,23 @@ const OTP = () => {
     setError("");
 
     try {
-      await dispatch(fetchOTP({ email, otp })).unwrap();
-      toast.success("OTP validated successfully. Email is verified!");
-      navigate("/auth/login");
+      if (type === "login") {
+        await dispatch(fetchLoginOTP({ email, otp })).unwrap();
+        toast.success("Login OTP verified successfully!");
+
+        // Fetch the session data and store it in localStorage
+        await fetchSession();
+
+        navigate("/"); // Redirect to the home page or dashboard
+      } else {
+        await dispatch(fetchOTP({ email, otp })).unwrap();
+        toast.success("Registration OTP verified! Email is now verified.");
+
+        // Fetch the session data and store it in localStorage
+        await fetchSession();
+
+        navigate("/auth/login"); // Redirect to the login page
+      }
     } catch (err) {
       setError(err.message || "Invalid OTP. Please try again.");
       toast.error(err.message || "OTP verification failed.");
@@ -52,10 +92,12 @@ const OTP = () => {
         <CardHeader className="text-center">
           <ShieldCheck className="mx-auto h-14 w-14 text-indigo-500" />
           <CardTitle className="text-2xl font-semibold text-white">
-            Verify Your Email
+            {type === "login" ? "Verify Your Login" : "Verify Your Email"}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Enter the OTP sent to your email address.
+            {type === "login"
+              ? "Enter the OTP sent to your email for login verification."
+              : "Enter the OTP sent to your email for registration verification."}
           </CardDescription>
         </CardHeader>
 

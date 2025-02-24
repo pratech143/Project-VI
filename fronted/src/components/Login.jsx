@@ -43,24 +43,24 @@ export function Login() {
     setLoading(true); 
     try {
     const data=  await dispatch(fetchLogin({ email, password })).unwrap();
-    console.log(data)
-      toast.success('Login Successful');
-    
-      localStorage.setItem("email",data.email)
-        localStorage.setItem("role",data.role)
-        localStorage.setItem("voterId",data.voter_id)
-        localStorage.setItem("voted",data.is_voted)
+    console.log(data.success)
+
+    if(data.success===true){
+      toast.success('otp sent via email.Verify it.');
+      navigate('/otp',{ state:{email:email,type:"login"}});
       
-        setTimeout(()=>{
-          navigate('/dashboard');
-        }
-        ,1000)
+    }
+    else{
+      console.log(data)
+      toast.error(data.message)
+    }
+    
       
     } catch (error) {
       toast.error(error);
       setErrors((prev) => ({ ...prev, general: error.message || 'Login failed' }));
     } finally {
-      setLoading(false); // Stop loading when the request is finished
+      setLoading(false);
     }
   };
   

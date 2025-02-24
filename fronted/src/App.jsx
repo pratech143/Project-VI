@@ -15,6 +15,7 @@ import { ForgotPasswordPage } from './pages/PasswordReset';
 import ProtectedRoute from './components/ProtectedRoutes'; // Import ProtectedRoute component
 import { Profile } from './pages/Profile';
 import AddCandidates from './components/AddCandidates';
+import AdminVoterApproval from './pages/ApproveVoters';
 import { useEffect } from 'react';
 
 function App() {
@@ -42,6 +43,14 @@ function App() {
                <ProtectedRoute allowedRoles={['voter']}>
                 <Elections />
               </ProtectedRoute>
+            }
+          />
+            <Route
+            path="approval"
+            element={
+              //  <ProtectedRoute allowedRoles={['voter']}>
+                <AdminVoterApproval />
+              // </ProtectedRoute>
             }
           />
             <Route path="profile" element={

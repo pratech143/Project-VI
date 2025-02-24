@@ -47,6 +47,28 @@ export const userLogout = createAsyncThunk(
   }
 );
 
+export const fetchLoginOTP = createAsyncThunk(
+  "auth/fetchLoginOTP",
+  async ({ email, otp }, { rejectWithValue }) => {
+    try {
+      console.log(email)
+      const response = await baseApi.post("config/verify-login-otp.php", { email, token:otp });
+
+      const data = response.data;
+      console.log(data);
+
+      if (data.success === false) {
+        throw new Error(data.message || "Login OTP verification failed!");
+      }
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+
 // Register action
 export const fetchRegister = createAsyncThunk(
   "auth/fetchRegister",
@@ -173,7 +195,22 @@ const authSlice = createSlice({
     state.isLoading = false;
     state.isError = true;
     state.errorMessage = action.payload;
-  });
+  })
+
+.addCase(fetchLoginOTP.pending, (state) => {
+  state.isLoading = true;
+  state.isError = false;
+  state.errorMessage = "";
+})
+.addCase(fetchLoginOTP.fulfilled, (state, action) => {
+  state.isLoading = false;
+  state.data = action.payload;
+})
+.addCase(fetchLoginOTP.rejected, (state, action) => {
+  state.isLoading = false;
+  state.isError = true;
+  state.errorMessage = action.payload;
+})
 
   
 },
