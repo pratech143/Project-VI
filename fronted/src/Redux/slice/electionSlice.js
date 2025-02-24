@@ -1,6 +1,7 @@
 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import baseApi from "../../api/baseApi";
+import toast from "react-hot-toast";
 
 export const createElection = createAsyncThunk(
   "election/createElection",
@@ -59,7 +60,12 @@ export const deleteElection=createAsyncThunk(
       const data = response.data;
     
       if (!data.success) {
+        toast.error(data.message)
         throw new Error(data.message || "Failed to delete election!");
+        
+      }
+      else{
+        toast.success(data.message)
       }
     
       return data.message;

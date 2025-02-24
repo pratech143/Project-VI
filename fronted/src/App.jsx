@@ -15,8 +15,10 @@ import { ForgotPasswordPage } from './pages/PasswordReset';
 import ProtectedRoute from './components/ProtectedRoutes'; // Import ProtectedRoute component
 import { Profile } from './pages/Profile';
 import AddCandidates from './components/AddCandidates';
+import { useEffect } from 'react';
 
 function App() {
+
   
   return (
     <Router>

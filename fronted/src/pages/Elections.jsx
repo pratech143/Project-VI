@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchElections,deleteElection } from "../Redux/slice/electionSlice";
+import { fetchElections, deleteElection } from "../Redux/slice/electionSlice";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -28,65 +28,62 @@ export function Elections() {
   const dispatch = useDispatch();
   const [voterId, setVoterId] = useState(null);
   const { elections } = useSelector((state) => state.election);
-  const [expandedPost, setExpandedPost] = useState(null);
+  const [expandedPosts, setExpandedPosts] = useState({}); // Tracking expanded post per election
   const [role, setRole] = useState('');
-  const [isVoted, setIsVoted] = useState(0)
-  
-
-
+  const [isVoted, setIsVoted] = useState(0);
 
   const fetchSession = async () => {
     try {
-      const response = await baseApi.get("/config/get_user_session.php")
-
-      console.log("Session response:", response.data); // Debugging
-      console.log(response)
+      const response = await baseApi.get("/config/get_user_session.php");
 
       if (response.data.voter_id) {
         setVoterId(response.data.voter_id);
-      } else {
-        console.warn("Voter ID not found in session:", response.data);
       }
 
       if (response.data.role) {
         setRole(response.data.role);
-      } else {
-        console.warn("Role not found in session:", response.data);
       }
     } catch (error) {
       console.error("Error fetching session:", error);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchSession()
+    fetchSession();
   }, []);
+
   useEffect(() => {
     if (voterId) {
       dispatch(fetchElections({ voter_id: voterId }));
     }
   }, [dispatch, voterId]);
 
-  const toggleExpand = (post) => {
-    setExpandedPost(expandedPost === post ? null : post);
-  };
+  const toggleExpand = (electionId, post) => {
+    setExpandedPosts((prevState) => {
+      const newExpandedPosts = { ...prevState };
 
+      // If this election has an expanded post, collapse it, otherwise expand the selected post
+      if (newExpandedPosts[electionId] === post) {
+        delete newExpandedPosts[electionId];
+      } else {
+        newExpandedPosts[electionId] = post;
+      }
+      return newExpandedPosts;
+    });
+  };
 
   const votingConfirmation = async () => {
     try {
-      const response = await baseApi.get("function/is_voted.php")
-      console.log(response)
-      setIsVoted(response.data.is_voted)
+      const response = await baseApi.get("function/is_voted.php");
+      setIsVoted(response.data.is_voted);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
-
-
+  };
 
   useEffect(() => {
-    votingConfirmation()
-  }, [])
+    votingConfirmation();
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -156,18 +153,18 @@ export function Elections() {
                             className="bg-gray-700/30 rounded-lg p-4"
                           >
                             <button
-                              onClick={() => toggleExpand(post)}
+                              onClick={() => toggleExpand(election.election_id, post)}
                               className="flex justify-between w-full text-left text-indigo-400 font-medium"
                             >
                               {post}
-                              {expandedPost === post ? (
+                              {expandedPosts[election.election_id] === post ? (
                                 <ChevronUp className="w-5 h-5" />
                               ) : (
                                 <ChevronDown className="w-5 h-5" />
                               )}
                             </button>
                             <AnimatePresence>
-                              {expandedPost === post && (
+                              {expandedPosts[election.election_id] === post && (
                                 <motion.div
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: "auto" }}
@@ -211,22 +208,20 @@ export function Elections() {
                     {role !== 'admin' && (
                       <Button
                         className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center"
-                        disabled={election.status.toLowerCase() !== "ongoing" || isVoted == 1}
+                        disabled={election.status.toLowerCase() !== "ongoing" || isVoted === 1}
                       >
                         <Link to="/votingpage">
                           {" "}
-                          <Vote className="w-4 h-4 mr-2" /> {isVoted == 1 ? "You have already voted" : "Cast Votes"}
+                          <Vote className="w-4 h-4 mr-2" /> {isVoted === 1 ? "You have already voted" : "Cast Votes"}
                         </Link>
                       </Button>
                     )}
-                    {console.log(election.election_id)}
 
-                    {role == 'admin' && (
+                    {role === 'admin' && (
                       <Button
                         className="bg-red-600 hover:bg-red-700 text-white flex items-center"
                         disabled={election.status.toLowerCase() !== "upcoming"}
-                        onClick={()=>dispatch(deleteElection({electionId:election.election_id}))}
-                        
+                        onClick={() => dispatch(deleteElection({ electionId: election.election_id }))}
                       >
                         Delete
                       </Button>
@@ -236,8 +231,8 @@ export function Elections() {
                       {election.status.toLowerCase() === "ongoing"
                         ? "Voting is open"
                         : election.status.toLowerCase() === "upcoming"
-                          ? "Coming soon"
-                          : "Voting ended"}
+                        ? "Coming soon"
+                        : "Voting ended"}
                     </span>
                   </CardFooter>
                 </Card>

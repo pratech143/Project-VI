@@ -37,8 +37,6 @@ const OTP = () => {
     setError("");
 
     try {
-      console.log(email)
-      console.log(otp)
       await dispatch(fetchOTP({ email, otp })).unwrap();
       toast.success("OTP validated successfully. Email is verified!");
       navigate("/auth/login");

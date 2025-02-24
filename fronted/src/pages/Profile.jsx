@@ -2,14 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserData } from '@/Redux/slice/userSlice';
 import { motion } from 'framer-motion';
-import { Camera, Mail, User, MapPin, Calendar, Users, Edit2, Upload, X } from 'lucide-react';
+import { Camera, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 
 export function Profile() {
   const dispatch = useDispatch();
-  
+
   useEffect(() => {
     dispatch(fetchUserData())
       .unwrap()
@@ -27,20 +28,48 @@ export function Profile() {
     location,
     isLoading,
     isError,
+    profile_photo,
   } = useSelector((state) => state.user);
 
-  const [profileImage, setProfileImage] = useState(null);
+  const [profileImage, setProfileImage] = useState(profile_photo);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const fileInputRef = useRef(null);
+
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append('profile_photo', file);
+
+    try {
+      const response = await axios.post('http://localhost/Project-VI/Project-VI/backend/public/add_photo.php', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        setProfileImage(response.data.file_url);
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      toast.error('Error uploading profile picture.');
+    }
+  };
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         setProfileImage(reader.result);
         setShowImageDialog(false);
-        toast.success('Profile picture updated successfully!');
+        try {
+          await uploadImage(file);
+          toast.success('Profile picture updated successfully!');
+        } catch (error) {
+          toast.error('Error uploading profile picture');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -96,19 +125,15 @@ export function Profile() {
             <div className="space-y-6 mt-6">
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-gray-600">
-                  <Mail className="w-5 h-5 text-indigo-600" />
                   <span>{email}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-gray-600">
-                  <Calendar className="w-5 h-5 text-indigo-600" />
                   <span>{dob}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-gray-600">
-                  <Users className="w-5 h-5 text-indigo-600" />
                   <span>{gender}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-gray-600">
-                  <MapPin className="w-5 h-5 text-indigo-600" />
                   <span>{location}</span>
                 </div>
               </div>
@@ -145,3 +170,4 @@ export function Profile() {
     </div>
   );
 }
+

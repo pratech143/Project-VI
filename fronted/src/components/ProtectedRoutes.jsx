@@ -1,15 +1,45 @@
 import { Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import baseApi from '@/api/baseApi';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const role = localStorage.getItem('role'); // Check if a role exists
+  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // If there's no role, the user is not authenticated
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const response = await baseApi.get("/config/get_user_session.php");
+
+        console.log("API Response:", response.data); // Debugging
+
+        if (response.data.role) {
+          setRole(response.data.role);
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSession();
+  }, []);
+
+  // Debugging outputs
+  console.log("Current Role:", role);
+  console.log("Allowed Roles:", allowedRoles);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   if (!role) {
     return <Navigate to="/auth/login" />;
   }
 
-  // If the user's role is not in the allowedRoles array, redirect to the home page
   if (allowedRoles && !allowedRoles.includes(role)) {
+    console.warn(`Access denied! Role "${role}" is not in allowed roles:`, allowedRoles);
     return <Navigate to="/" />;
   }
 

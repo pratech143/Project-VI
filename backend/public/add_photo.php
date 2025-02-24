@@ -5,11 +5,24 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
+// Check if the session is active
 if (!isset($_SESSION['email'])) {
     echo json_encode(["success" => false, "message" => "Unauthorized access"]);
     exit;
 }
 
+// Log the session data to a text file for debugging purposes
+$log_data = "Session Data:\n";
+$log_data .= "Email: " . $_SESSION['email'] . "\n"; // Log session email
+if (isset($_SESSION['user_id'])) {
+    $log_data .= "User ID: " . $_SESSION['user_id'] . "\n"; // Log session user_id if it exists
+}
+$log_data .= "Time: " . date("Y-m-d H:i:s") . "\n"; // Log timestamp
+
+// Append the session data to a text file
+file_put_contents("session_log.txt", $log_data, FILE_APPEND);
+
+// Continue with the original code
 $email = $_SESSION['email'];
 $query = "SELECT user_id, profile_photo FROM users WHERE email = ?";
 $stmt = $conn->prepare($query);
