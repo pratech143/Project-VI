@@ -1,66 +1,67 @@
 <?php
 session_start();
+
 include '../config/database.php';
 include '../config/handle_cors.php';
 
-header('Content-Type: application/json'); 
+header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
+    echo json_encode(["success" => false, "message" => "Invalid request method"]);
     exit;
 }
 
 $data = json_decode(file_get_contents('php://input'), true);
-$email = $data['email'] ?? null;
-$otp = $data['otp'] ?? null;
 
-if (empty($email) || empty($otp)) {
+if (!$data) {
+    echo json_encode(["success" => false, "message" => "Invalid JSON input"]);
+    exit;
+}
+
+$email = $data['email'] ?? null;
+$token = $data['token'] ?? null;
+
+if (empty($email) ) {
     echo json_encode(["success" => false, "message" => "Email and OTP are required"]);
     exit;
 }
 
-$stmt = $conn->prepare("SELECT user_id, role, voter_id, is_voted, otp, otp_expiry FROM users WHERE email = ?");
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows === 0) {
-    echo json_encode(["success" => false, "message" => "User not found"]);
+if (!isset($_SESSION['token'][$email])) {
+    echo json_encode(["success" => false, "message" => "No OTP found for this email. Please log in again."]);
     exit;
+} else {
+    echo json_encode(["success" => true, "message" => "OTP found in session", "Token" => $_SESSION['token'][$email]]);
 }
 
-$user = $result->fetch_assoc();
-
-if ($user['otp_expiry'] && strtotime($user['otp_expiry']) < time()) {
-    $clear_expired_otp_stmt = $conn->prepare("UPDATE users SET otp = NULL, otp_expiry = NULL WHERE email = ?");
-    $clear_expired_otp_stmt->bind_param("s", $email);
-    $clear_expired_otp_stmt->execute();
-
-    echo json_encode(["success" => false, "message" => "OTP expired. Please log in again."]);
-    exit;
-}
-
-if ($user['otp'] != $otp) {
+if ($_SESSION['token'][$email]['token'] != $token) {
     echo json_encode(["success" => false, "message" => "Invalid OTP"]);
     exit;
 }
 
-$clear_otp_stmt = $conn->prepare("UPDATE users SET otp = NULL, otp_expiry = NULL WHERE email = ?");
-$clear_otp_stmt->bind_param("s", $email);
-$clear_otp_stmt->execute();
+if ($_SESSION['token'][$email]['expiry'] < time()) {
+    unset($_SESSION['token'][$email]);
+    echo json_encode(["success" => false, "message" => "OTP has expired. Please log in again."]);
+    exit;
+}
 
-$_SESSION['user_id'] = $user['user_id'];
-$_SESSION['role'] = ($user['role'] == 1) ? 'admin' : 'voter';
+$user_id = $_SESSION['login_data']['user_id'];
+$email = $_SESSION['login_data']['email'];
+$voter_id = $_SESSION['login_data']['voter_id'];
+
+$_SESSION['user_id'] = $user_id;
 $_SESSION['email'] = $email;
-$_SESSION['voter_id'] = $user['voter_id'] ?? null;
-$_SESSION['is_voted'] = $user['is_voted'];
+$_SESSION['voter_id'] = $voter_id;
+
+unset($_SESSION['token'][$email]);
+unset($_SESSION['login_data']);
 
 echo json_encode([
     "success" => true,
     "message" => "Login successful",
-    "role" => $_SESSION['role'],
-    "user_id" => $_SESSION['user_id'],
-    "email" => $_SESSION['email'],
-    "voter_id" => $_SESSION['voter_id'] ?? null,
+    "user" => [
+        "user_id" => $user_id,
+        "email" => $email,
+        "voter_id" => $voter_id
+    ]
 ]);
 ?>

@@ -1,9 +1,11 @@
 <?php
+
 session_start();
 
 include '../config/database.php';
 include '../config/handle_cors.php';
 include '../config/mail_config.php';
+include '../config/encryption.php'; 
 
 header('Content-Type: application/json');
 
@@ -53,16 +55,18 @@ if ($user_result->num_rows > 0) {
     exit;
 }
 
+$encrypted_password = encryptData($password);
+
 $otp = rand(100000, 999999);
 $_SESSION['otp'][$email] = [
     'otp' => $otp,
-    'expiry' => time() + (5 * 60)
+    'expiry' => time() + (5 * 60) 
 ];
 
 $_SESSION['registration_data'] = [
     'voter_id' => $voter_id,
     'email' => $email,
-    'password' => password_hash($password, PASSWORD_DEFAULT)
+    'password' => $encrypted_password
 ];
 
 $subject = "Email Verification for Election System";
