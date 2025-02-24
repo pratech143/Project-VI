@@ -35,7 +35,7 @@ const OTP = () => {
   const fetchSession = async () => {
     try {
       const response = await baseApi.get("/config/get_user_session.php");
-      console.log(response)
+      console.log(response);
       if (response.data.voter_id) {
         localStorage.setItem("voterId", response.data.voter_id);
       }
@@ -58,7 +58,7 @@ const OTP = () => {
       console.error("Error fetching session:", error);
     }
   };
-  console.log(type)
+  console.log(type);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,9 +68,8 @@ const OTP = () => {
       if (type === "login") {
         await dispatch(fetchLoginOTP({ email, otp })).unwrap();
         toast.success("Login OTP verified successfully!");
-     await fetchSession();
-     localStorage.setItem("email",email)
-    
+        await fetchSession();
+        localStorage.setItem("email", email);
 
         navigate("/");
       } else {
@@ -106,7 +105,10 @@ const OTP = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="otp" className="text-md font-medium text-gray-400">
+              <Label
+                htmlFor="otp"
+                className="text-md font-medium text-gray-400"
+              >
                 Enter OTP:
               </Label>
               <div className="relative">
@@ -116,21 +118,25 @@ const OTP = () => {
                   type="text"
                   value={otp}
                   onChange={handleChange}
-                  maxLength="6"
+                  maxLength="8"
                   placeholder="123456"
                   required
                   className="pl-10 text-white w-full border border-gray-500 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
-              {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
+              {errorMessage && (
+                <p className="text-red-500 text-sm">{errorMessage}</p>
+              )}
             </div>
 
             <Button
               type="submit"
               disabled={isLoading}
               className={`w-full ${
-                isLoading ? "bg-gray-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+                isLoading
+                  ? "bg-gray-500 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
               } text-white font-semibold py-2 rounded-md`}
             >
               {isLoading ? "Verifying..." : "Verify OTP"}

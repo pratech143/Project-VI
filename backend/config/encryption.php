@@ -1,5 +1,7 @@
 <?php
 
+$secret_key = "8703eed875b2c832dfe2583a34851212805df7b1b778f8981b3fd67a32fdc630";
+
 define('ENCRYPTION_KEY', hex2bin('ee51a202c256f7bffc9bdccba2db14584204cca30c4c1c6cb96a20f4ffbeae97'));
 
 function generateIV() {

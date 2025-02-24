@@ -67,11 +67,20 @@ foreach ($data as $post_id => $candidates) {
         $location_type = $candidate['location_type'] ?? null;
         $ward = $candidate['ward'] ?? null;
 
-        if (!$candidate_name || !$party_name || !$location_name || !$location_type || !$ward || !$post_name) {
+        if (!$candidate_name || !$party_name || !$location_name || !$location_type) {
             $errors[] = "Missing fields for candidate: " . json_encode($candidate);
             continue;
         }
 
+        // Set ward to NULL for Mayor and Deputy Mayor posts if it's not provided
+        if (in_array($post_id, [1, 2])) {  // Mayor and Deputy Mayor
+            $ward = 0; // explicitly set to NULL
+        } elseif (!$ward) {
+            $errors[] = "Missing ward for ward-specific candidate: " . json_encode($candidate);
+            continue;
+        }
+
+        // Check if location exists
         $location_query = $conn->prepare("
             SELECT location_id FROM locations 
             WHERE location_name = ? AND location_type = ? 
@@ -89,6 +98,7 @@ foreach ($data as $post_id => $candidates) {
         $location_data = $location_result->fetch_assoc();
         $location_id = $location_data['location_id'];
 
+        // Insert candidate
         $insert_query = $conn->prepare("
             INSERT INTO candidates (candidate_name, party_name, location_id, ward, post_id)
             VALUES (?, ?, ?, ?, ?)
