@@ -34,10 +34,12 @@ $start_date = $data['start_date'] ?? null;
 $end_date = $data['end_date'] ?? null;
 $status = $data['status'] ?? 'Upcoming';
 
-if (empty($name) || empty($description) || empty($district_name) || empty($location_name) || empty($location_type) || empty($start_date) || empty($end_date)) {
-    echo json_encode(["success" => false, "message" => "All fields are required"]);
-    exit;
-}
+$start_date_obj = new DateTime($start_date);
+
+$end_date_obj = clone $start_date_obj;
+$end_date_obj->modify('+1 day')->setTime(0, 0);
+
+$end_date = $end_date_obj->format('Y-m-d H:i:s');
 
 $location_check = $conn->prepare("SELECT location_id FROM locations WHERE district_name = ? AND location_name = ? AND location_type = ? LIMIT 1");
 $location_check->bind_param("sss", $district_name, $location_name, $location_type);
