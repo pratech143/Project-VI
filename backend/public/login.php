@@ -28,7 +28,7 @@ if (empty($email) || empty($password)) {
     exit;
 }
 
-$user_check = $conn->prepare("SELECT user_id, email, password, voter_id, is_email_verified FROM users WHERE email = ?");
+$user_check = $conn->prepare("SELECT user_id, email, password, voter_id, is_email_verified, user_role FROM users WHERE email = ?");
 $user_check->bind_param("s", $email);
 $user_check->execute();
 $user_result = $user_check->get_result();
@@ -42,20 +42,34 @@ $user = $user_result->fetch_assoc();
 
 $decrypted_password = decryptData($user['password']);
 
-// Compare the entered password with the decrypted password
 if (trim($password) !== trim($decrypted_password)) {
-    echo json_encode(["success" => false, "message" => "Incorrect password"]);
-    exit;
-}
-
-// Compare the entered password with the decrypted password
-if ($password !== $decrypted_password) {
     echo json_encode(["success" => false, "message" => "Incorrect password"]);
     exit;
 }
 
 if (!$user['is_email_verified']) {
     echo json_encode(["success" => false, "message" => "Email not verified. Please verify your email before logging in."]);
+    exit;
+}
+
+if ($user['role'] === 'admin') {
+    $_SESSION['login_data'] = [
+        'user_id' => $user['user_id'],
+        'email' => $email,
+        'voter_id' => $user['voter_id'],
+        'role' => $user['role'],
+    ];
+
+    $_SESSION['user_id'] = $user['user_id'];
+    $_SESSION['email'] = $user['email'];
+    $_SESSION['voter_id'] = $user['voter_id'];
+    $_SESSION['role'] = $user['role'];
+
+    echo json_encode([
+        "success" => true,
+        "message" => "Admin logged in successfully. Redirecting to the dashboard.",
+        "role" => $_SESSION['role']
+    ]);
     exit;
 }
 
@@ -68,12 +82,14 @@ $_SESSION['token'][$email] = [
 $_SESSION['login_data'] = [
     'user_id' => $user['user_id'],
     'email' => $email,
-    'voter_id' => $user['voter_id']
+    'voter_id' => $user['voter_id'],
+    'role' => $user['role']
 ];
 
 $_SESSION['user_id'] = $user['user_id'];
 $_SESSION['email'] = $user['email'];
 $_SESSION['voter_id'] = $user['voter_id'];
+$_SESSION['role'] = $user['role'];
 
 $subject = "Your Login OTP for Election System";
 $message = "Your OTP for login is: $token. It will expire in 5 minutes.";

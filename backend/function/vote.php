@@ -4,6 +4,7 @@ session_start();
 include '../config/database.php';
 include '../config/mail_config.php';
 include '../config/handle_cors.php';
+include '../config/encryption.php'; 
 
 header('Content-Type: application/json');
 
@@ -18,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $data = json_decode(file_get_contents('php://input'), true);
-
 if (!$data) {
     echo json_encode(["success" => false, "message" => "Invalid JSON data"]);
     exit;
@@ -33,13 +33,7 @@ if (empty($voter_id) || empty($election_id) || !is_array($votes) || count($votes
     exit;
 }
 
-$voter_check = $conn->prepare("
-    SELECT g.voter_id 
-    FROM government_voters g
-    JOIN users u ON g.voter_id = u.voter_id
-    WHERE u.voter_id = ?
-");
-
+$voter_check = $conn->prepare("SELECT email FROM users WHERE voter_id = ?");
 $voter_check->bind_param("s", $voter_id);
 $voter_check->execute();
 $voter_result = $voter_check->get_result();
@@ -49,25 +43,9 @@ if ($voter_result->num_rows === 0) {
     exit;
 }
 
-$email_query = $conn->prepare("SELECT email FROM users WHERE voter_id = ?");
-$email_query->bind_param("s", $voter_id);
-$email_query->execute();
-$email_result = $email_query->get_result();
+$voter_email = $voter_result->fetch_assoc()['email'];
 
-if ($email_result->num_rows === 0) {
-    echo json_encode(["success" => false, "message" => "Voter email not found"]);
-    exit;
-}
-
-$voter_email = $email_result->fetch_assoc()['email'];
-
-
-// Check if election is active
-$election_check = $conn->prepare("
-    SELECT election_id, name, start_date, end_date, status 
-    FROM elections 
-    WHERE election_id = ?
-");
+$election_check = $conn->prepare("SELECT name, start_date, end_date, status FROM elections WHERE election_id = ?");
 $election_check->bind_param("i", $election_id);
 $election_check->execute();
 $election_result = $election_check->get_result();
@@ -78,13 +56,14 @@ if ($election_result->num_rows === 0) {
 }
 
 $election_data = $election_result->fetch_assoc();
+$election_name = $election_data['name'];
 $current_date = date("Y-m-d");
 
 if ($election_data['status'] !== 'Ongoing' || $current_date < $election_data['start_date'] || $current_date > $election_data['end_date']) {
     echo json_encode(["success" => false, "message" => "This election is not active or has expired"]);
     exit;
 }
-//change
+
 $flattened_votes = [];
 foreach ($votes as $vote) {
     if (is_array($vote['candidate_id'])) {
@@ -100,10 +79,7 @@ foreach ($votes as $vote) {
 }
 $votes = $flattened_votes;
 
-$post_counts = [
-    'Ward Member' => []
-];
-
+$post_counts = ['Ward Member' => []];
 $valid_votes = [];
 
 foreach ($votes as $vote) {
@@ -116,7 +92,6 @@ foreach ($votes as $vote) {
     $post_result = $post_query->get_result();
     $post_name = $post_result->fetch_assoc()['post_name'];
 
-    // Handle "Ward Member" votes with a limit of 4 candidates
     if ($post_name === 'Ward Member') {
         if (count($post_counts['Ward Member']) >= 4) {
             continue;
@@ -126,6 +101,7 @@ foreach ($votes as $vote) {
         $post_counts[$post_name][] = $candidate_id;
     }
 
+    $vote['post_name'] = $post_name;
     $valid_votes[] = $vote;
 }
 
@@ -143,9 +119,7 @@ try {
         $candidate_id = $vote['candidate_id'];
         $post_id = $vote['post_id'];
 
-        $candidate_check = $conn->prepare("
-            SELECT candidate_id FROM candidates WHERE candidate_id = ? AND post_id = ?
-        ");
+        $candidate_check = $conn->prepare("SELECT candidate_id FROM candidates WHERE candidate_id = ? AND post_id = ?");
         $candidate_check->bind_param("ii", $candidate_id, $post_id);
         $candidate_check->execute();
         $candidate_result = $candidate_check->get_result();
@@ -155,41 +129,25 @@ try {
             continue;
         }
 
-        $vote_check = $conn->prepare("
-            SELECT vote_id FROM votes WHERE voter_id = ? AND election_id = ? AND post_id = ?
-        ");
-        $vote_check->bind_param("sii", $voter_id, $election_id, $post_id);
-        $vote_check->execute();
-        $vote_result = $vote_check->get_result();
-
-    if ($post_name == 'Ward Member') {
-            
-        if ($vote_result->num_rows >= 4) {
-            // If the user has already voted for this post, mark it as failed
-            $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "You have already voted for this post"];
-            continue;
-        }
-    }
-        elseif ($vote_result->num_rows > 0){
-            $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "You have already voted for this post"];
-            continue;
-        }
-
+        // Insert vote
         $random_salt = bin2hex(random_bytes(8));
         $vote_data_string = $voter_id . $election_id . $candidate_id . $post_id . $random_salt;
         $vote_hash = hash("sha256", $vote_data_string);
 
-        $insert_vote = $conn->prepare("
-            INSERT INTO votes (voter_id, election_id, candidate_id, post_id, vote_hash) 
-            VALUES (?, ?, ?, ?, ?)
-        ");
+        $insert_vote = $conn->prepare("INSERT INTO votes (voter_id, election_id, candidate_id, post_id, vote_hash) VALUES (?, ?, ?, ?, ?)");
         $insert_vote->bind_param("siiis", $voter_id, $election_id, $candidate_id, $post_id, $vote_hash);
 
         if ($insert_vote->execute()) {
-            $success_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Vote cast successfully"];
+            $success_votes[] = $vote;
         } else {
             $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Failed to cast vote"];
         }
+    }
+
+    if (count($success_votes) > 0) {
+        $update_voted = $conn->prepare("UPDATE users SET is_voted = 1 WHERE voter_id = ?");
+        $update_voted->bind_param("s", $voter_id);
+        $update_voted->execute();
     }
 
     $conn->commit();
@@ -199,30 +157,16 @@ try {
     exit;
 }
 
-foreach ($success_votes as &$vote) {
-    $post_id = $vote['post_id'];
-    $post_query = $conn->prepare("SELECT post_name FROM posts WHERE post_id = ?");
-    $post_query->bind_param("i", $post_id);
-    $post_query->execute();
-    $post_result = $post_query->get_result();
-    
-    $vote['post_name'] = ($post_result->num_rows > 0) ? $post_result->fetch_assoc()['post_name'] : "Unknown Position";
-}
-
-$election_name = $election_data['name'];
+$conn->query("UPDATE users u JOIN votes v ON u.voter_id = v.voter_id JOIN elections e ON v.election_id = e.election_id SET u.is_voted = 0 WHERE e.status = 'Completed'");
 
 if (count($success_votes) > 0) {
-
-    $update_voted = $conn->prepare("UPDATE users SET is_voted = 1 WHERE voter_id = ?");
-    $update_voted->bind_param("s", $voter_id);
-    $update_voted->execute();
-
     $subject = "Vote Confirmation - $election_name";
-    
     $message = "Dear Voter,\n\nYou have successfully voted in the $election_name election.\n\n";
+    
     foreach ($success_votes as $vote) {
         $message .= "You have voted for the position of {$vote['post_name']}.\n";
     }
+    
     $message .= "\nThank you for participating in the democratic process.\n\nRegards,\ne-मत Team";
 
     sendEmail($voter_email, $subject, $message);
