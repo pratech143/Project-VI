@@ -1,8 +1,9 @@
 <?php
-session_start(); 
+session_start();
 
 include '../config/database.php';
 include '../config/handle_cors.php';
+include '../config/encryption.php';
 
 header('Content-Type: application/json');
 
@@ -49,12 +50,26 @@ if (!isset($_SESSION['registration_data'])) {
 
 $voter_id = $_SESSION['registration_data']['voter_id'];
 $email = $_SESSION['registration_data']['email'];
-$password_hash = $_SESSION['registration_data']['password'];
+$encrypted_password = $_SESSION['registration_data']['password'];
 
 try {
+    $conn->begin_transaction();
+
+    // Prepare the insert statement
     $stmt = $conn->prepare("INSERT INTO users (email, password, voter_id, is_email_verified, role) VALUES (?, ?, ?, TRUE, 0)");
-    $stmt->bind_param("sss", $email, $password_hash, $voter_id);
-    $stmt->execute();
+
+    if ($stmt === false) {
+        throw new Exception("Failed to prepare statement: " . $conn->error);
+    }
+
+    // Bind the parameters for the prepared statement
+    $stmt->bind_param("sss", $email, $encrypted_password, $voter_id);
+
+    if (!$stmt->execute()) {
+        throw new Exception("Failed to execute statement: " . $stmt->error);
+    }
+
+    $conn->commit();
 
     unset($_SESSION['otp'][$email]);
     unset($_SESSION['registration_data']);
@@ -64,6 +79,10 @@ try {
         "message" => "OTP verified successfully. Your account has been created."
     ]);
 } catch (Exception $e) {
+    $conn->rollback();
+
+    error_log("Error: " . $e->getMessage());
+
     echo json_encode(["success" => false, "message" => "Error verifying OTP: " . $e->getMessage()]);
 }
 ?>
