@@ -42,28 +42,31 @@ export function Login() {
     if (!validateInputs()) return; 
     setLoading(true); 
     try {
-    const data=  await dispatch(fetchLogin({ email, password })).unwrap();
-    console.log(data.success)
-
-    if(data.success===true){
-      toast.success('otp sent via email.Verify it.');
-      navigate('/otp',{ state:{email:email,type:"login"}});
-      
-    }
-    else{
-      console.log(data)
-      toast.error(data.message)
-    }
     
+      const data = await dispatch(fetchLogin({ email, password })).unwrap();
+      console.log(data.success);
+
+      if (data.success) {
       
+
+
+        toast.success('OTP sent via email. Please verify it.');
+      
+          navigate('/otp', { state: { email: email, type: "login" } });
+        
+
+    
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
-      toast.error(error);
+      console.error("Login Error:", error);
+      toast.error(error.message || "Login failed");
       setErrors((prev) => ({ ...prev, general: error.message || 'Login failed' }));
     } finally {
       setLoading(false);
     }
   };
-  
 
   return (
     <div className="flex items-center justify-center bg-slate-blue text-white">

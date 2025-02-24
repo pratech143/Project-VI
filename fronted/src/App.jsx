@@ -46,11 +46,11 @@ function App() {
             }
           />
             <Route
-            path="approval"
+            path="approve-voters"
             element={
-              //  <ProtectedRoute allowedRoles={['voter']}>
+               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminVoterApproval />
-              // </ProtectedRoute>
+            </ProtectedRoute>
             }
           />
             <Route path="profile" element={

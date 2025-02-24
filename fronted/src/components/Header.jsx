@@ -107,6 +107,7 @@ export default function Header() {
                             </li>
                         )}
                         {role === "admin" && (
+                            <>
                             <li>
                                 <NavLink
                                     to="/addcandidates"
@@ -116,6 +117,18 @@ export default function Header() {
                                     Add Candidates
                                 </NavLink>
                             </li>
+                                <li>
+                                <NavLink
+                                    to="/approve-voters"
+                                    className="text-gray-700 hover:text-orange-700"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    Approve voters
+                                </NavLink>
+                            </li>
+                            </>
+                            
+
                         )}
                     </ul>
 

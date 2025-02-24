@@ -35,6 +35,7 @@ const OTP = () => {
   const fetchSession = async () => {
     try {
       const response = await baseApi.get("/config/get_user_session.php");
+      console.log(response)
       if (response.data.voter_id) {
         localStorage.setItem("voterId", response.data.voter_id);
       }
@@ -57,6 +58,7 @@ const OTP = () => {
       console.error("Error fetching session:", error);
     }
   };
+  console.log(type)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,11 +68,11 @@ const OTP = () => {
       if (type === "login") {
         await dispatch(fetchLoginOTP({ email, otp })).unwrap();
         toast.success("Login OTP verified successfully!");
+     await fetchSession();
+     localStorage.setItem("email",email)
+    
 
-        // Fetch the session data and store it in localStorage
-        await fetchSession();
-
-        navigate("/"); // Redirect to the home page or dashboard
+        navigate("/");
       } else {
         await dispatch(fetchOTP({ email, otp })).unwrap();
         toast.success("Registration OTP verified! Email is now verified.");
