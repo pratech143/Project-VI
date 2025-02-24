@@ -91,33 +91,7 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Upcoming Elections with Search */}
-        <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Upcoming Elections</h2>
-            <div className="relative">
-              <Search className="absolute left-3 top-2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search elections..."
-                className="bg-gray-700 pl-10 pr-3 py-2 rounded-lg text-white w-64"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <ul className="space-y-2">
-            {filteredElections.length > 0 ? (
-              filteredElections.map((election) => (
-                <li key={election.id} className="bg-gray-700 p-3 rounded-lg">
-                  {election.name} - {election.date}
-                </li>
-              ))
-            ) : (
-              <p className="text-gray-400">No elections found.</p>
-            )}
-          </ul>
-        </div>
+       
       </div>
     </div>
   );

@@ -23,15 +23,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
+import { fetchProfilePicture } from "@/Redux/slice/ProfileSlice";
 
 export function Profile() {
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(fetchUserData())
-      .unwrap()
-      .catch((err) => console.log("Error:", err));
-  }, [dispatch]);
+  const [profileImage, setProfileImage] = useState(null);
+  const [showImageDialog, setShowImageDialog] = useState(false);
+  const fileInputRef = useRef(null);
 
   const {
     name,
@@ -46,9 +44,30 @@ export function Profile() {
     isError,
   } = useSelector((state) => state.user);
 
-  const [profileImage, setProfileImage] = useState(null);
-  const [showImageDialog, setShowImageDialog] = useState(false);
-  const fileInputRef = useRef(null);
+  useEffect(() => {
+    dispatch(fetchUserData())
+      .unwrap()
+      .catch((err) => console.log("Error:", err));
+  }, [dispatch]);
+
+  useEffect(() => {
+    const fetchProfilePhoto = async () => {
+      try {
+        const response = await dispatch(fetchProfilePicture({user_id}))
+        
+        console.log(response)
+        if (data.success && data.profile_photo) {
+          setProfileImage(data.profile_photo);
+        }
+      } catch (error) {
+        console.error("Error fetching profile photo:", error);
+      }
+    };
+
+    if (user_id) {
+      fetchProfilePhoto();
+    }
+  }, [user_id]);
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -59,7 +78,7 @@ export function Profile() {
 
     try {
       const response = await fetch(
-        "http://localhost/Project-VI/Project-VI/backend/public/add_photo.php",
+        "http://localhost/Project-VI/Project-VI/backend/public/fetch_photo.php",
         {
           method: "POST",
           body: formData,
@@ -70,9 +89,7 @@ export function Profile() {
       const data = await response.json();
 
       if (data.success) {
-        // Normalize the URL to ensure correct slashes
-        const imageUrl = data.file_url.replace(/\\\//g, "/");
-        setProfileImage(imageUrl); // Update with URL from backend
+        setProfileImage(data.file_url); // Update with URL from backend
         toast.success("Profile picture updated successfully!");
       } else {
         toast.error(data.message || "Failed to upload image");

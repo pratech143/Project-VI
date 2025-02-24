@@ -1,4 +1,4 @@
-<?php 
+<?php
 session_start();
 include '../config/database.php';
 include '../config/handle_cors.php';
@@ -22,7 +22,7 @@ if ($user_result->num_rows === 0) {
 }
 
 $user = $user_result->fetch_assoc();
-if ($user['role'] != 'admin') {
+if ($_SESSION['role'] != 'admin') {
     echo json_encode(["success" => false, "message" => "Access denied. Only admins can add candidates."]);
     exit;
 }
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $data = json_decode(file_get_contents('php://input'), true);
-if (!$data ) {
+if (!$data) {
     echo json_encode(["success" => false, "message" => "Invalid data format."]);
     exit;
 }
@@ -41,9 +41,22 @@ if (!$data ) {
 $errors = [];
 $successCount = 0;
 
-// Loop through each ward key
-foreach ($data as $wardNumber => $candidates) {
+$post_mapping = [
+    1 => "Mayor",
+    2 => "Deputy Mayor",
+    3 => "Ward Chairperson",
+    4 => "Ward Member"
+];
+
+foreach ($data as $post_id => $candidates) {
     if (!is_array($candidates)) {
+        continue;
+    }
+
+    $post_name = isset($post_mapping[$post_id]) ? $post_mapping[$post_id] : null;
+
+    if (!$post_name) {
+        $errors[] = "Unknown post ID: $post_id";
         continue;
     }
 
@@ -53,35 +66,12 @@ foreach ($data as $wardNumber => $candidates) {
         $location_name = $candidate['locationId'] ?? null;
         $location_type = $candidate['location_type'] ?? null;
         $ward = $candidate['ward'] ?? null;
-        
-        // Dynamically determine post_id based on post_type or other conditions
-        $post_id = null;
-        if (isset($candidate['post_type'])) {
-            // Example: Dynamically determine post_id from the post_type
-            switch ($candidate['post_type']) {
-                case 'Mayor':
-                    $post_id = 1; // Post ID for Mayor
-                    break;
-                case 'Deputy Mayor':
-                    $post_id = 2; // Post ID for Deputy Mayor
-                    break;
-                case 'Ward Member':
-                    $post_id = 3; // Post ID for Ward Member (default or if not specified)
-                    break;
-                default:
-                    $errors[] = "Unknown post type: " . $candidate['post_type'];
-                    continue;
-            }
-        } else {
-            $post_id = 3; // Default to Ward Member if post_type is not specified
-        }
 
-        if (!$candidate_name || !$party_name || !$location_name || !$location_type || !$ward || !$post_id) {
+        if (!$candidate_name || !$party_name || !$location_name || !$location_type || !$ward || !$post_name) {
             $errors[] = "Missing fields for candidate: " . json_encode($candidate);
             continue;
         }
 
-        // Get location_id
         $location_query = $conn->prepare("
             SELECT location_id FROM locations 
             WHERE location_name = ? AND location_type = ? 
@@ -99,7 +89,6 @@ foreach ($data as $wardNumber => $candidates) {
         $location_data = $location_result->fetch_assoc();
         $location_id = $location_data['location_id'];
 
-        // Insert candidate
         $insert_query = $conn->prepare("
             INSERT INTO candidates (candidate_name, party_name, location_id, ward, post_id)
             VALUES (?, ?, ?, ?, ?)

@@ -1,0 +1,20 @@
+Array
+(
+    [body] => {"1":[{"name":"fsdf","party":"fbvdv","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"2":[{"name":"jkj","party":"sfjkbsd","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"3":[{"name":"fdfdfsg","party":"sdfbdf","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"4":[{"name":"dsfgdsfg","party":"sdfgdg","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}]}
+)
+Array
+(
+    [body] => {"1":[{"name":"fsdf","party":"fbvdv","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"2":[{"name":"jkj","party":"sfjkbsd","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"3":[{"name":"fdfdfsg","party":"sdfbdf","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"4":[{"name":"dsfgdsfg","party":"sdfgdg","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}]}
+)
+Array
+(
+    [body] => {"1":[{"name":"fsdf","party":"fbvdv","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"2":[{"name":"jkj","party":"sfjkbsd","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"3":[{"name":"fdfdfsg","party":"sdfbdf","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"4":[{"name":"dsfgdsfg","party":"sdfgdg","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}]}
+)
+Array
+(
+    [body] => {"1":[{"name":"fsdf","party":"fbvdv","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"2":[{"name":"jkj","party":"sfjkbsd","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"3":[{"name":"fdfdfsg","party":"sdfbdf","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"4":[{"name":"dsfgdsfg","party":"sdfgdg","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}]}
+)
+Array
+(
+    [body] => {"1":[{"name":"fsdf","party":"fbvdv","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"2":[{"name":"jkj","party":"sfjkbsd","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"3":[{"name":"fdfdfsg","party":"sdfbdf","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}],"4":[{"name":"dsfgdsfg","party":"sdfgdg","locationId":"Kathmandu Metropolitan City","ward":"1","location_type":"Metropolitan City"}]}
+)
