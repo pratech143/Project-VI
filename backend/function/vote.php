@@ -8,7 +8,7 @@ include '../config/encryption.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['voter_id']) || $_SESSION['role'] !== 'voter') {
+if (!isset($_SESSION['voter_id']) || $_SESSION['role'] !== 0) {
     echo json_encode(["success" => false, "message" => "Unauthorized access."]);
     exit;
 }

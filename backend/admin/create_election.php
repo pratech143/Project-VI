@@ -7,7 +7,7 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
     echo json_encode(["success" => false, "message" => "Unauthorized access."]);
     exit;
 }
