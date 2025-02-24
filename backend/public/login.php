@@ -42,9 +42,6 @@ $user = $user_result->fetch_assoc();
 
 $decrypted_password = decryptData($user['password']);
 
-var_dump($decrypted_password);
-var_dump($password);
-
 // Compare the entered password with the decrypted password
 if (trim($password) !== trim($decrypted_password)) {
     echo json_encode(["success" => false, "message" => "Incorrect password"]);
@@ -73,6 +70,10 @@ $_SESSION['login_data'] = [
     'email' => $email,
     'voter_id' => $user['voter_id']
 ];
+
+$_SESSION['user_id'] = $user['user_id'];
+$_SESSION['email'] = $user['email'];
+$_SESSION['voter_id'] = $user['voter_id'];
 
 $subject = "Your Login OTP for Election System";
 $message = "Your OTP for login is: $token. It will expire in 5 minutes.";

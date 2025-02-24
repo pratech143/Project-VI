@@ -1,5 +1,6 @@
 <?php
 session_start();
+
 include '../config/database.php';
 include '../config/handle_cors.php';
 
@@ -45,43 +46,29 @@ if (!in_array($image_info['mime'], $allowed_types)) {
     exit;
 }
 
-if ($profile_photo['size'] > 12 * 1024 * 1024) { // 12MB limit
+if ($profile_photo['size'] > 12 * 1024 * 1024) { 
     echo json_encode(["success" => false, "message" => "File size exceeds 12MB"]);
     exit;
 }
 
-$upload_dir = __DIR__ . "/uploads/";
-if (!is_dir($upload_dir)) {
-    mkdir($upload_dir, 0777, true);
-}
+try {
+    $image_data = file_get_contents($profile_photo['tmp_name']);
 
-$file_ext = strtolower(pathinfo($profile_photo["name"], PATHINFO_EXTENSION));
-$file_name = "profile_" . $user_id . "_" . time() . "." . $file_ext;
-$file_path = $upload_dir . $file_name;
+    $stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE user_id = ?");
+    $stmt->bind_param("bi", $null, $user_id); 
+    $stmt->send_long_data(0, $image_data); 
+    $stmt->execute();
 
-if (!move_uploaded_file($profile_photo["tmp_name"], $file_path)) {
-    echo json_encode(["success" => false, "message" => "Failed to upload photo. Try again."]);
-    exit;
-}
+    if ($stmt->affected_rows > 0) {
+        echo json_encode([
+            "success" => true,
+            "message" => "Profile photo uploaded successfully."
+        ]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to save photo in database."]);
+    }
 
-// Remove old profile photo if it exists
-if ($old_photo && file_exists($upload_dir . $old_photo)) {
-    unlink($upload_dir . $old_photo);
-}
-
-$stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE user_id = ?");
-$stmt->bind_param("si", $file_name, $user_id);
-$stmt->execute();
-
-$file_url = "http://localhost/Project-VI/Project-VI/backend/public/uploads/" . $file_name;
-
-if ($stmt->affected_rows > 0) {
-    echo json_encode([
-        "success" => true,
-        "message" => "Profile uploaded successfully.",
-        "file_url" => $file_url
-    ]);
-} else {
-    echo json_encode(["success" => false, "message" => "Failed to save photo in database."]);
+} catch (Exception $e) {
+    echo json_encode(["success" => false, "message" => "Error uploading profile photo: " . $e->getMessage()]);
 }
 ?>
