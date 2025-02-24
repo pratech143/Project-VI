@@ -116,7 +116,7 @@ const OTP = () => {
                   type="text"
                   value={otp}
                   onChange={handleChange}
-                  maxLength="6"
+                  maxLength="8"
                   placeholder="123456"
                   required
                   className="pl-10 text-white w-full border border-gray-500 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
