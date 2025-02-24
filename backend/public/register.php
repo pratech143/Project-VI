@@ -57,7 +57,17 @@ if ($user_result->num_rows > 0) {
 
 $encrypted_password = encryptData($password);
 
-$otp = rand(100000, 999999);
+function generateOTP($length = 8) {
+    $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    $otp = '';
+    for ($i = 0; $i < $length; $i++) {
+        $otp .= $characters[random_int(0, strlen($characters) - 1)];
+    }
+    return $otp;
+}
+
+$otp = generateOTP();
+
 $_SESSION['otp'][$email] = [
     'otp' => $otp,
     'expiry' => time() + (5 * 60) 

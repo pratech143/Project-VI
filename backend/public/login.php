@@ -73,7 +73,17 @@ if ($user['role'] === 'admin') {
     exit;
 }
 
-$token = rand(100000, 999999);
+function generateOTP($length = 8) {
+    $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    $otp = '';
+    for ($i = 0; $i < $length; $i++) {
+        $otp .= $characters[random_int(0, strlen($characters) - 1)];
+    }
+    return $otp;
+}
+
+$token = generateOTP();
+
 $_SESSION['token'][$email] = [
     'token' => $token,
     'expiry' => time() + (5 * 60) 

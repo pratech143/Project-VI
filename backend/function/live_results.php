@@ -4,6 +4,7 @@ session_start();
 include '../config/database.php';
 include '../config/mail_config.php';
 include '../config/handle_cors.php';
+include '../config/encryption.php';
 
 header('Content-Type: application/json');
 
@@ -62,35 +63,37 @@ while ($row = $election_result->fetch_assoc()) {
     $location_wards[$row['location_id']][] = $row['election_id'];
 }
 
-$query = "
-    SELECT 
-        e.election_id, 
-        e.location_id, 
-        e.ward,
-        l.location_type,
-        c.candidate_id, 
-        c.candidate_name, 
-        c.party_name, 
-        c.post_id, 
-        p.post_name, 
-        COUNT(v.vote_id) AS vote_count
-    FROM elections e
-    JOIN candidates c ON c.location_id = e.location_id AND (c.ward = e.ward OR c.post_id IN (SELECT post_id FROM posts WHERE post_name IN ('Mayor', 'Deputy Mayor')))
-    JOIN posts p ON c.post_id = p.post_id
-    JOIN locations l ON e.location_id = l.location_id
-    LEFT JOIN votes v ON c.candidate_id = v.candidate_id AND v.election_id = e.election_id
-    WHERE e.status = 'Ongoing'
-    GROUP BY 
-        e.election_id, 
-        c.candidate_id, 
-        c.candidate_name, 
-        c.party_name, 
-        c.post_id, 
-        p.post_name, 
-        e.ward, 
-        l.location_type
-    ORDER BY e.election_id, c.post_id, vote_count DESC
-";
+$query = "SELECT 
+    e.election_id, 
+    e.location_id, 
+    e.ward,
+    l.location_type,
+    c.candidate_id, 
+    c.candidate_name, 
+    c.party_name, 
+    c.post_id, 
+    p.post_name, 
+    COUNT(v.vote_id) AS vote_count
+FROM elections e
+JOIN candidates c 
+    ON c.location_id = e.location_id 
+    AND (c.ward = e.ward OR c.post_id IN (SELECT post_id FROM posts WHERE post_name IN ('Mayor', 'Deputy Mayor')))
+JOIN posts p ON c.post_id = p.post_id
+JOIN locations l ON e.location_id = l.location_id
+LEFT JOIN votes v 
+    ON c.candidate_id = v.candidate_id 
+    AND v.election_id = e.election_id
+WHERE e.status = 'Ongoing'
+GROUP BY 
+    e.election_id, 
+    c.candidate_id,
+    c.candidate_name, 
+    c.party_name, 
+    c.post_id, 
+    p.post_name, 
+    e.ward, 
+    l.location_type
+ORDER BY e.election_id, c.post_id, vote_count DESC";
 
 $stmt = $conn->prepare($query);
 $stmt->execute();
@@ -104,6 +107,19 @@ while ($row = $result->fetch_assoc()) {
     $location_id = $row['location_id'];
     $candidate_id = $row['candidate_id'];
     $ward = $row['ward'];
+    
+    // Decrypt the encrypted_candidate_id using your decryptData function
+    $decrypted_candidate_id = decryptData($row['encrypted_candidate_id']);
+
+    // Debugging: log the decrypted candidate_id and candidate_id
+    error_log("Decrypted Candidate ID: " . $decrypted_candidate_id);
+    error_log("Original Candidate ID: " . $candidate_id);
+    
+    // Check if the decrypted ID matches the candidate ID
+    if ($decrypted_candidate_id !== (string)$candidate_id) {
+        error_log("Mismatch! Decrypted ID doesn't match candidate ID.");
+        continue; // Skip this record if IDs do not match
+    }
 
     if ($row['post_name'] === 'Mayor' || $row['post_name'] === 'Deputy Mayor') {
         $key = "{$location_id}_{$post_id}_{$candidate_id}";

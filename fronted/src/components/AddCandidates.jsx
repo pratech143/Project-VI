@@ -25,7 +25,7 @@ const posts = [
 ];
 
 export default function AddCandidates() {
-  const [step, setStep] = useState(-1); // Start at -1 for location selection
+  const [step, setStep] = useState(-1);
   const [candidates, setCandidates] = useState({});
   const [locationInfo, setLocationInfo] = useState({
     district: "",
