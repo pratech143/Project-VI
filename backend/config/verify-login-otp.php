@@ -47,10 +47,12 @@ if ($_SESSION['token'][$email]['expiry'] < time()) {
 $user_id = $_SESSION['login_data']['user_id'];
 $email = $_SESSION['login_data']['email'];
 $voter_id = $_SESSION['login_data']['voter_id'];
+$role = $_SESSION['login_data']['role'];
 
 $_SESSION['user_id'] = $user_id;
 $_SESSION['email'] = $email;
 $_SESSION['voter_id'] = $voter_id;
+$_SESSION['role'] = $role;
 
 unset($_SESSION['token'][$email]);
 unset($_SESSION['login_data']);
@@ -61,7 +63,8 @@ echo json_encode([
     "user" => [
         "user_id" => $user_id,
         "email" => $email,
-        "voter_id" => $voter_id
+        "voter_id" => $voter_id,
+        "role" => $role,
     ]
 ]);
 ?>
