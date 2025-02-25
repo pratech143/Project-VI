@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['voter_id']) || !isset($_SE
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($_FILES)) {
-        print_r($_FILES);
+        // print_r($_FILES);
     } else {
         echo json_encode(["success" => false, "message" => "No files received."]);
     }
@@ -73,7 +73,6 @@ try {
     $stmt->execute();
 
     if ($stmt->affected_rows <= 0) {
-        http_response_code(500);
         echo json_encode(["success" => false, "message" => "Failed to update database. Please try again."]);
         exit;
     }

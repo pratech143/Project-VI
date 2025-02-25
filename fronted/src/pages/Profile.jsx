@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
 import baseApi from "../api/baseApi";
+import { uploadVoterId } from "@/Redux/slice/voterSlice";
 
 export function Profile() {
   const dispatch = useDispatch();
@@ -179,8 +180,8 @@ export function Profile() {
         }
       );
 
-      const result = response.data.message;
-      console.log("Upload response:", result);
+      const result = response.data;
+      console.log("Upload response:", result.success);
 
       if (result.success) {
         toast.success(
