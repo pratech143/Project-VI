@@ -65,7 +65,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-            <Route path="votingpage" element={<ProtectedRoute allowedRoles={['admin']} restrictVoting={true}>
+            <Route path="votingpage" element={<ProtectedRoute allowedRoles={['voter']} restrictVoting={true}>
                 <VotingPage />
               </ProtectedRoute>} />
           <Route

@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         FROM users u
         JOIN government_voters gv ON u.voter_id = gv.voter_id
         JOIN locations l ON gv.location_id = l.location_id
-        WHERE u.is_verified = 0 AND u.role = 0
+        WHERE u.is_verified = 0 AND u.role = 0 AND u.voter_id_image IS NOT NULL
     ");
         $stmt->execute();
         $result = $stmt->get_result();
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         } else {
             echo json_encode([
                 "success" => false,
-                "message" => "No unverified voters found."
+                "message" => "No unverified voters with images found."
             ]);
         }
     } catch (Exception $e) {

@@ -35,10 +35,8 @@ $end_date = $data['end_date'] ?? null;
 $status = $data['status'] ?? 'Upcoming';
 
 $start_date_obj = new DateTime($start_date);
-
 $end_date_obj = clone $start_date_obj;
 $end_date_obj->modify('+1 day')->setTime(0, 0);
-
 $end_date = $end_date_obj->format('Y-m-d H:i:s');
 
 $location_check = $conn->prepare("SELECT location_id FROM locations WHERE district_name = ? AND location_name = ? AND location_type = ? LIMIT 1");
@@ -69,6 +67,49 @@ if ($existing_election_result->num_rows > 0) {
     exit;
 }
 
+// Determine available posts based on location type
+$available_posts = [];
+if (in_array($location_type, ['Metropolitan City', 'Sub-Metropolitan City', 'Municipality'])) {
+    $available_posts = [1, 2, 3, 4]; // Mayor, Deputy Mayor, Ward Chairperson, Ward Member
+} else if ($location_type === 'Rural Municipality/VDC') {
+    $available_posts = [3, 4]; // Ward Chairperson, Ward Member
+}
+
+// Check for candidates before creating election
+$candidate_check_failed = false;
+$missing_positions = [];
+
+foreach ($available_posts as $post_id) {
+    $post_ward = ($post_id == 1 || $post_id == 2) ? 0 : $ward; // Mayor and Deputy Mayor are ward 0
+    
+    $fetch_candidates = $conn->prepare("SELECT COUNT(*) as candidate_count 
+                                      FROM candidates 
+                                      WHERE location_id = ? AND ward = ? AND post_id = ?");
+    $fetch_candidates->bind_param("iii", $location_id, $post_ward, $post_id);
+    $fetch_candidates->execute();
+    $candidate_result = $fetch_candidates->get_result();
+    $candidate_count = $candidate_result->fetch_assoc()['candidate_count'];
+
+    if ($candidate_count == 0) {
+        $candidate_check_failed = true;
+        $post_name = '';
+        switch ($post_id) {
+            case 1: $post_name = 'Mayor'; break;
+            case 2: $post_name = 'Deputy Mayor'; break;
+            case 3: $post_name = 'Ward Chairperson'; break;
+            case 4: $post_name = 'Ward Member'; break;
+        }
+        $missing_positions[] = $post_name;
+    }
+}
+
+if ($candidate_check_failed) {
+    $message = "Cannot create election: No candidates found for " . implode(', ', $missing_positions);
+    echo json_encode(["success" => false, "message" => $message]);
+    exit;
+}
+
+// If we reach here, there are candidates for all required positions
 $insert_election = $conn->prepare("
     INSERT INTO elections (name, description, location_id, location_type, ward, start_date, end_date, status) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -82,13 +123,6 @@ if (!$insert_election->execute()) {
 
 $election_id = $conn->insert_id;
 
-$available_posts = [];
-if (in_array($location_type, ['Metropolitan City', 'Sub-Metropolitan City', 'Municipality'])) {
-    $available_posts = [1, 2, 3, 4]; 
-} else if ($location_type === 'Rural Municipality/VDC') {
-    $available_posts = [3, 4];
-}
-
 foreach ($available_posts as $post_id) {
     $insert_position = $conn->prepare("INSERT INTO election_positions (election_id, post_id) VALUES (?, ?)");
     $insert_position->bind_param("ii", $election_id, $post_id);
@@ -97,7 +131,7 @@ foreach ($available_posts as $post_id) {
 
 $election_positions = [];
 foreach ($available_posts as $post_id) {
-    $post_ward = ($post_id == 1 || $post_id == 2) ? 0 : $ward; 
+    $post_ward = ($post_id == 1 || $post_id == 2) ? 0 : $ward;
 
     $fetch_candidates = $conn->prepare("SELECT candidate_id FROM candidates WHERE location_id = ? AND ward = ? AND post_id = ?");
     $fetch_candidates->bind_param("iii", $location_id, $post_ward, $post_id);
@@ -115,6 +149,7 @@ foreach ($available_posts as $post_id) {
     ];
 }
 
+// Email notification
 $send_email = $conn->prepare("SELECT email FROM users WHERE voter_id IN (SELECT voter_id FROM government_voters WHERE location_id = ? AND ward = ?)");
 $send_email->bind_param("ii", $location_id, $ward);
 $send_email->execute();

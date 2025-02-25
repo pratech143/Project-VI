@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { format } from "date-fns";
+import { format, addDays, differenceInDays } from "date-fns";
 import baseApi from "../api/baseApi";
 import {
   Plus,
@@ -13,7 +13,7 @@ import {
   Building,
   Users,
   ChevronRight,
-  Award
+  Award,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,7 +40,6 @@ import {
   SelectContent,
 } from "@/components/ui/select";
 
-
 export function CreateElection() {
   const dispatch = useDispatch();
   const { isLoading, errorMessage } = useSelector((state) => state.election);
@@ -56,7 +55,6 @@ export function CreateElection() {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedWards, setSelectedWards] = useState("");
-
 
   const form = useForm({
     defaultValues: {
@@ -121,6 +119,17 @@ export function CreateElection() {
   const today = new Date().toISOString().split("T")[0];
   const startDate = watch("start_date");
   const minEndDate = startDate || today;
+  const maxEndDate = startDate ? addDays(new Date(startDate), 2).toISOString().split("T")[0] : today;
+
+  const validateEndDate = (value) => {
+    const start = new Date(watch("start_date"));
+    const end = new Date(value);
+    if (!startDate) return true; // Skip if start_date isn't set yet
+    if (end < start) return "End date must be on or after start date";
+    const diffDays = differenceInDays(end, start);
+    if (diffDays > 2) return "Election duration cannot exceed 2 days";
+    return true;
+  };
 
   const handleCreateElection = async (data) => {
     setElectionData(data);
@@ -138,13 +147,16 @@ export function CreateElection() {
         return;
       }
 
-      const electionResponse = await dispatch(createElection(electionData)).unwrap();
+      const electionResponse = await dispatch(
+        createElection(electionData)
+      ).unwrap();
       setOpen(false);
       setStep(1);
       form.reset();
       toast.success("Election created successfully!");
     } catch (error) {
-      toast.error(`Failed to create election: ${error.message || "Something went wrong"}`);
+      const errorMsg = error || "Failed to create election";
+      toast.error(errorMsg);
     }
   };
 
@@ -160,10 +172,14 @@ export function CreateElection() {
   const handleLocationChange = (location) => {
     setSelectedLocation(location);
     setSelectedWards("");
-    const locationDetails = locations.find((loc) => loc.location_name === location);
+    const locationDetails = locations.find(
+      (loc) => loc.location_name === location
+    );
     setValue("location_name", location);
     setValue("location_type", locationDetails?.location_type || "");
-    setWards(Array.from({ length: locationDetails?.wards || 0 }, (_, i) => i + 1));
+    setWards(
+      Array.from({ length: locationDetails?.wards || 0 }, (_, i) => i + 1)
+    );
     setValue("ward", "");
   };
 
@@ -187,7 +203,9 @@ export function CreateElection() {
                   <Building2 className="h-8 w-8 text-indigo-600" />
                   Election Management
                 </h1>
-                <p className="text-gray-500 mt-2 text-lg">Create and manage election events for your district</p>
+                <p className="text-gray-500 mt-2 text-lg">
+                  Create and manage election events for your district
+                </p>
               </div>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
@@ -207,7 +225,8 @@ export function CreateElection() {
                         Create New Election
                       </DialogTitle>
                       <DialogDescription className="text-base mt-2">
-                        Fill in the details below to create a new election event. All fields are required.
+                        Fill in the details below to create a new election
+                        event. All fields are required.
                       </DialogDescription>
                     </DialogHeader>
 
@@ -222,7 +241,10 @@ export function CreateElection() {
                         >
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                              <Label htmlFor="district_name" className="text-sm font-medium flex items-center gap-2">
+                              <Label
+                                htmlFor="district_name"
+                                className="text-sm font-medium flex items-center gap-2"
+                              >
                                 <Building className="h-4 w-4 text-gray-500" />
                                 District
                               </Label>
@@ -230,7 +252,9 @@ export function CreateElection() {
                                 id="district_name"
                                 value={selectedDistrict}
                                 onValueChange={handleDistrictChange}
-                                {...form.register("district_name", { required: "District is required" })}
+                                {...form.register("district_name", {
+                                  required: "District is required",
+                                })}
                               >
                                 <SelectTrigger className="w-full h-11">
                                   <SelectValue placeholder="Select District" />
@@ -244,12 +268,17 @@ export function CreateElection() {
                                 </SelectContent>
                               </Select>
                               {errors.district_name && (
-                                <p className="text-sm text-red-500 mt-1">{errors.district_name.message}</p>
+                                <p className="text-sm text-red-500 mt-1">
+                                  {errors.district_name.message}
+                                </p>
                               )}
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="location_name" className="text-sm font-medium flex items-center gap-2">
+                              <Label
+                                htmlFor="location_name"
+                                className="text-sm font-medium flex items-center gap-2"
+                              >
                                 <MapPin className="h-4 w-4 text-gray-500" />
                                 Location
                               </Label>
@@ -257,28 +286,38 @@ export function CreateElection() {
                                 id="location_name"
                                 value={selectedLocation}
                                 onValueChange={handleLocationChange}
-                                {...form.register("location_name", { required: "Location is required" })}
+                                {...form.register("location_name", {
+                                  required: "Location is required",
+                                })}
                               >
                                 <SelectTrigger className="w-full h-11">
                                   <SelectValue placeholder="Select Location" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {locations.map((loc) => (
-                                    <SelectItem key={loc.location_name} value={loc.location_name}>
+                                    <SelectItem
+                                      key={loc.location_name}
+                                      value={loc.location_name}
+                                    >
                                       {loc.location_name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                               {errors.location_name && (
-                                <p className="text-sm text-red-500 mt-1">{errors.location_name.message}</p>
+                                <p className="text-sm text-red-500 mt-1">
+                                  {errors.location_name.message}
+                                </p>
                               )}
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                              <Label htmlFor="location_type" className="text-sm font-medium flex items-center gap-2">
+                              <Label
+                                htmlFor="location_type"
+                                className="text-sm font-medium flex items-center gap-2"
+                              >
                                 <Building2 className="h-4 w-4 text-gray-500" />
                                 Location Type
                               </Label>
@@ -291,7 +330,10 @@ export function CreateElection() {
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="ward" className="text-sm font-medium flex items-center gap-2">
+                              <Label
+                                htmlFor="ward"
+                                className="text-sm font-medium flex items-center gap-2"
+                              >
                                 <Users className="h-4 w-4 text-gray-500" />
                                 Ward Number
                               </Label>
@@ -299,49 +341,74 @@ export function CreateElection() {
                                 id="ward"
                                 value={selectedWards}
                                 onValueChange={handleWardChange}
-                                {...form.register("ward", { required: "Ward number is required" })}
+                                {...form.register("ward", {
+                                  required: "Ward number is required",
+                                })}
                               >
                                 <SelectTrigger className="w-full h-11">
                                   <SelectValue placeholder="Select Ward" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {wards.map((ward) => (
-                                    <SelectItem key={ward} value={ward.toString()}>
+                                    <SelectItem
+                                      key={ward}
+                                      value={ward.toString()}
+                                    >
                                       {ward}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
-                              {errors.ward && <p className="text-sm text-red-500 mt-1">{errors.ward.message}</p>}
+                              {errors.ward && (
+                                <p className="text-sm text-red-500 mt-1">
+                                  {errors.ward.message}
+                                </p>
+                              )}
                             </div>
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
+                            <Label
+                              htmlFor="name"
+                              className="text-sm font-medium flex items-center gap-2"
+                            >
                               <FileText className="h-4 w-4 text-gray-500" />
                               Election Name
                             </Label>
                             <Input
                               id="name"
-                              {...form.register("name", { required: "Election name is required" })}
+                              {...form.register("name", {
+                                required: "Election name is required",
+                              })}
                               placeholder="Enter election name"
                               className="w-full h-11"
                             />
-                            {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
+                            {errors.name && (
+                              <p className="text-sm text-red-500 mt-1">
+                                {errors.name.message}
+                              </p>
+                            )}
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="description" className="text-sm font-medium">
+                            <Label
+                              htmlFor="description"
+                              className="text-sm font-medium"
+                            >
                               Description
                             </Label>
                             <Input
                               id="description"
-                              {...form.register("description", { required: "Description is required" })}
+                              {...form.register("description", {
+                                required: "Description is required",
+                              })}
                               placeholder="Enter election description"
                               className="w-full h-11"
                             />
                             {errors.description && (
-                              <p className="text-sm text-red-500 mt-1">{errors.description.message}</p>
+                              <p className="text-sm text-red-500 mt-1">
+                                {errors.description.message}
+                              </p>
                             )}
                           </div>
 
@@ -355,13 +422,21 @@ export function CreateElection() {
                                 <Input
                                   id="start_date"
                                   type="date"
-                                  {...form.register("start_date", { required: "Start date is required" })}
+                                  {...form.register("start_date", {
+                                    required: "Start date is required",
+                                  })}
                                   min={today}
                                   className="pl-4 h-11"
+                                  onChange={(e) => {
+                                    setValue("start_date", e.target.value);
+                                    trigger("end_date"); // Re-validate end_date when start_date changes
+                                  }}
                                 />
                               </div>
                               {errors.start_date && (
-                                <p className="text-sm text-red-500 mt-1">{errors.start_date.message}</p>
+                                <p className="text-sm text-red-500 mt-1">
+                                  {errors.start_date.message}
+                                </p>
                               )}
                             </div>
 
@@ -374,17 +449,28 @@ export function CreateElection() {
                                 <Input
                                   id="end_date"
                                   type="date"
-                                  {...form.register("end_date", { required: "End date is required" })}
+                                  {...form.register("end_date", {
+                                    required: "End date is required",
+                                    validate: validateEndDate,
+                                  })}
                                   min={minEndDate}
+                                  max={maxEndDate}
                                   className="pl-4 h-11"
                                 />
                               </div>
-                              {errors.end_date && <p className="text-sm text-red-500 mt-1">{errors.end_date.message}</p>}
+                              {errors.end_date && (
+                                <p className="text-sm text-red-500 mt-1">
+                                  {errors.end_date.message}
+                                </p>
+                              )}
                             </div>
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="status" className="text-sm font-medium">
+                            <Label
+                              htmlFor="status"
+                              className="text-sm font-medium"
+                            >
                               Election Status
                             </Label>
                             <Input
@@ -417,47 +503,79 @@ export function CreateElection() {
                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                             <div className="flex items-center gap-2 text-amber-700 mb-2">
                               <AlertCircle className="h-5 w-5" />
-                              <h3 className="font-semibold">Please Review Election Details</h3>
+                              <h3 className="font-semibold">
+                                Please Review Election Details
+                              </h3>
                             </div>
                             <p className="text-amber-600 text-sm">
-                              Carefully review all details before confirming the election creation.
+                              Carefully review all details before confirming the
+                              election creation.
                             </p>
                           </div>
 
                           <div className="bg-gray-50 rounded-lg p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-6">
                               <div>
-                                <span className="font-semibold text-gray-700">Name:</span>
-                                <p className="text-gray-600 mt-1">{electionData.name}</p>
+                                <span className="font-semibold text-gray-700">
+                                  Name:
+                                </span>
+                                <p className="text-gray-600 mt-1">
+                                  {electionData.name}
+                                </p>
                               </div>
                               <div>
-                                <span className="font-semibold text-gray-700">Location:</span>
-                                <p className="text-gray-600 mt-1">{electionData.location_name}</p>
+                                <span className="font-semibold text-gray-700">
+                                  Location:
+                                </span>
+                                <p className="text-gray-600 mt-1">
+                                  {electionData.location_name}
+                                </p>
                               </div>
                               <div>
-                                <span className="font-semibold text-gray-700">District:</span>
-                                <p className="text-gray-600 mt-1">{electionData.district_name}</p>
+                                <span className="font-semibold text-gray-700">
+                                  District:
+                                </span>
+                                <p className="text-gray-600 mt-1">
+                                  {electionData.district_name}
+                                </p>
                               </div>
                               <div>
-                                <span className="font-semibold text-gray-700">Ward:</span>
-                                <p className="text-gray-600 mt-1">{electionData.ward}</p>
+                                <span className="font-semibold text-gray-700">
+                                  Ward:
+                                </span>
+                                <p className="text-gray-600 mt-1">
+                                  {electionData.ward}
+                                </p>
                               </div>
                             </div>
                             <div>
-                              <span className="font-semibold text-gray-700">Description:</span>
-                              <p className="text-gray-600 mt-1">{electionData.description}</p>
-                            </div>
-                            <div>
-                              <span className="font-semibold text-gray-700">Duration:</span>
+                              <span className="font-semibold text-gray-700">
+                                Description:
+                              </span>
                               <p className="text-gray-600 mt-1">
-                                {format(new Date(electionData.start_date), 'PP')} to{' '}
-                                {format(new Date(electionData.end_date), 'PP')}
+                                {electionData.description}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-700">
+                                Duration:
+                              </span>
+                              <p className="text-gray-600 mt-1">
+                                {format(
+                                  new Date(electionData.start_date),
+                                  "PP"
+                                )}{" "}
+                                to{" "}
+                                {format(new Date(electionData.end_date), "PP")}
                               </p>
                             </div>
                           </div>
 
                           <div className="space-y-3">
-                            <Label htmlFor="admin-password" className="text-sm font-medium text-gray-700">
+                            <Label
+                              htmlFor="admin-password"
+                              className="text-sm font-medium text-gray-700"
+                            >
                               Admin Password
                             </Label>
                             <div className="relative">
@@ -466,7 +584,9 @@ export function CreateElection() {
                                 id="admin-password"
                                 type="password"
                                 value={adminPassword}
-                                onChange={(e) => setAdminPassword(e.target.value)}
+                                onChange={(e) =>
+                                  setAdminPassword(e.target.value)
+                                }
                                 className="pl-10 h-11"
                                 placeholder="Enter admin password"
                               />

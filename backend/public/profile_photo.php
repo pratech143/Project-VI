@@ -6,82 +6,84 @@ include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
 
-// Check if the session is active
-if (!isset($_SESSION['email'])) {
-    echo json_encode(["success" => false, "message" => "Unauthorized access"]);
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['voter_id']) || !isset($_SESSION['email'])) {
+    echo json_encode(["success" => false, "message" => "You are not logged in."]);
     exit;
 }
 
-// Log the session data to a text file for debugging purposes
-$log_data = "Session Data:\n";
-$log_data .= "Email: " . $_SESSION['email'] . "\n"; // Log session email
-if (isset($_SESSION['user_id'])) {
-    $log_data .= "User ID: " . $_SESSION['user_id'] . "\n"; // Log session user_id if it exists
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
+    exit;
 }
-$log_data .= "Time: " . date("Y-m-d H:i:s") . "\n"; // Log timestamp
 
-// Append the session data to a text file
-file_put_contents("session_log.txt", $log_data, FILE_APPEND);
-
-// Continue with the original code
+$voter_id = $_SESSION['voter_id'];
 $email = $_SESSION['email'];
-$query = "SELECT user_id, profile_photo FROM users WHERE email = ?";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
+$user_id = $_SESSION['user_id'];
 
-if (!$user) {
-    echo json_encode(["success" => false, "message" => "User not found"]);
+if (empty($_FILES) || !isset($_FILES['profile_photo'])) {
+    error_log("No file uploaded in \$_FILES['profile_photo']. Request headers: " . print_r(getallheaders(), true));
+    echo json_encode(["success" => false, "message" => "No file data received."]);
     exit;
 }
 
-$user_id = $user['user_id'];
-$old_photo = $user['profile_photo'];
+$file = $_FILES['profile_photo'];
+$allowed_types = ['image/jpeg', 'image/png', 'image/jpg'];
 
-if (!isset($_FILES['profile_photo']) || $_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
-    echo json_encode(["success" => false, "message" => "No file uploaded or upload error"]);
+if (!in_array($file['type'], $allowed_types)) {
+    http_response_code(400);
+    echo json_encode(["success" => false, "message" => "Invalid file type. Only JPG, JPEG, and PNG are allowed."]);
     exit;
 }
 
-$profile_photo = $_FILES['profile_photo'];
-$image_info = getimagesize($profile_photo['tmp_name']);
-
-if (!$image_info) {
-    echo json_encode(["success" => false, "message" => "Invalid image file"]);
+if ($file['size'] > 5 * 1024 * 1024) {
+    http_response_code(400);
+    echo json_encode(["success" => false, "message" => "File size exceeds 5MB limit."]);
     exit;
 }
 
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-if (!in_array($image_info['mime'], $allowed_types)) {
-    echo json_encode(["success" => false, "message" => "Only JPG, PNG, and GIF images are allowed"]);
+$imageData = file_get_contents($file['tmp_name']);
+
+if ($imageData === false) {
+    error_log("Failed to read uploaded file: " . $file['tmp_name']);
+    http_response_code(500);
+    echo json_encode(["success" => false, "message" => "Server error: Failed to read uploaded file."]);
     exit;
 }
 
-if ($profile_photo['size'] > 12 * 1024 * 1024) { 
-    echo json_encode(["success" => false, "message" => "File size exceeds 12MB"]);
-    exit;
-}
+error_log("Uploaded profile photo size: " . strlen($imageData));
 
 try {
-    $image_data = file_get_contents($profile_photo['tmp_name']);
-
-    $stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE user_id = ?");
-    $stmt->bind_param("bi", $null, $user_id); 
-    $stmt->send_long_data(0, $image_data); 
+    $stmt = $conn->prepare("SELECT user_id FROM users WHERE voter_id = ?");
+    $stmt->bind_param("s", $voter_id);
     $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
-    if ($stmt->affected_rows > 0) {
-        echo json_encode([
-            "success" => true,
-            "message" => "Profile photo uploaded successfully."
-        ]);
-    } else {
-        echo json_encode(["success" => false, "message" => "Failed to save photo in database."]);
+    if (!$user) {
+        http_response_code(404);
+        echo json_encode(["success" => false, "message" => "User not found."]);
+        exit;
     }
 
+    $stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE voter_id = ?");
+    $stmt->bind_param("bs", $imageData, $voter_id);
+    $stmt->send_long_data(0, $imageData); 
+    $stmt->execute();
+
+    if ($stmt->affected_rows <= 0) {
+        echo json_encode(["success" => false, "message" => "Failed to update database. Please try again."]);
+        exit;
+    }
+
+    http_response_code(200);
+    echo json_encode([
+        "success" => true,
+        "message" => "Profile photo uploaded successfully."
+    ]);
+
 } catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => "Error uploading profile photo: " . $e->getMessage()]);
+    error_log("Error uploading profile photo for voter_id $voter_id: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(["success" => false, "message" => "An error occurred while uploading the profile photo. Please try again."]);
 }
 ?>

@@ -25,63 +25,64 @@ if (!$user) {
 }
 
 $user_id = $user['user_id'];
-$old_photo = $user['profile_photo'];
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['profile_photo']) || !isset($_FILES['profile_photo']['tmp_name'])) {
-    echo json_encode(["success" => false, "message" => "Profile photo required"]);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(["success" => false, "message" => "Invalid request method. Please use POST."]);
     exit;
 }
 
-$profile_photo = $_FILES['profile_photo'];
-
-$image_info = getimagesize($profile_photo['tmp_name']);
-if ($image_info === false) {
-    echo json_encode(["success" => false, "message" => "Invalid image file"]);
+if (empty($_FILES) || !isset($_FILES['profile_photo'])) {
+    error_log("No file uploaded in \$_FILES['profile_photo']. Request headers: " . print_r(getallheaders(), true));
+    echo json_encode(["success" => false, "message" => "No file data received."]);
     exit;
 }
 
-if ($profile_photo['size'] > 12 * 1024 * 1024) {
-    echo json_encode(["success" => false, "message" => "File size > 12 MB"]);
+$file = $_FILES['profile_photo'];
+$allowed_types = ['image/jpeg', 'image/png', 'image/jpg']; // Match upload_profile_photo.php
+
+if (!in_array($file['type'], $allowed_types)) {
+    http_response_code(400);
+    echo json_encode(["success" => false, "message" => "Invalid file type. Only JPG, JPEG, and PNG are allowed."]);
     exit;
 }
 
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-if (!in_array($image_info['mime'], $allowed_types)) {
-    echo json_encode(["success" => false, "message" => "Only JPG, PNG, and GIF images are allowed"]);
+if ($file['size'] > 5 * 1024 * 1024) { // Match upload_profile_photo.php's 5MB limit
+    http_response_code(400);
+    echo json_encode(["success" => false, "message" => "File size exceeds 5MB limit."]);
     exit;
 }
 
-$upload_dir = __DIR__ . "/uploads/";
-if (!is_dir($upload_dir)) {
-    mkdir($upload_dir, 0777, true); // Create Dir
-}
+$imageData = file_get_contents($file['tmp_name']);
 
-$file_ext = pathinfo($profile_photo["name"], PATHINFO_EXTENSION);
-$file_name = "profile_" . $user_id . "_" . time() . "." . $file_ext;
-$file_path = $upload_dir . $file_name;
-
-if (!move_uploaded_file($profile_photo["tmp_name"], $file_path)) {
-    echo json_encode(["success" => false, "message" => "Failed to upload photo. Try again."]);
+if ($imageData === false) {
+    error_log("Failed to read uploaded file: " . $file['tmp_name']);
+    http_response_code(500);
+    echo json_encode(["success" => false, "message" => "Server error: Failed to read uploaded file."]);
     exit;
 }
 
-if ($old_photo && file_exists($upload_dir . $old_photo)) {
-    unlink($upload_dir . $old_photo);
-}
+error_log("Uploaded profile photo size: " . strlen($imageData));
 
-$stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE user_id = ?");
-$stmt->bind_param("si", $file_name, $user_id);
-$stmt->execute();
+try {
+    $stmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE user_id = ?");
+    $stmt->bind_param("bi", $imageData, $user_id);
+    $stmt->send_long_data(0, $imageData); // For large BLOBs
+    $stmt->execute();
 
-$file_url = "http://localhost/Project-VI/Project-VI/backend/uploads/" . $file_name;
+    if ($stmt->affected_rows <= 0) {
+        echo json_encode(["success" => false, "message" => "Failed to update database. Please try again."]);
+        exit;
+    }
 
-if ($stmt->affected_rows > 0) {
+    http_response_code(200);
     echo json_encode([
         "success" => true,
-        "message" => "Profile updated successfully.",
-        "file_url" => $file_url
+        "message" => "Profile photo uploaded successfully."
     ]);
-} else {
-    echo json_encode(["success" => false, "message" => "Failed to update profile. Try again."]);
+
+} catch (Exception $e) {
+    error_log("Error uploading profile photo for user_id $user_id: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(["success" => false, "message" => "An error occurred while uploading the profile photo. Please try again."]);
 }
 ?>

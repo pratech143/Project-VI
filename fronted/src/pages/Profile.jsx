@@ -33,7 +33,8 @@ export function Profile() {
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showVoterIdDialog, setShowVoterIdDialog] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [profileImage, setProfileImage] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState(null);
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [voterIdImage, setVoterIdImage] = useState(null);
   const [voterIdImageData, setVoterIdImageData] = useState(null);
   const [selectedVoterFile, setSelectedVoterFile] = useState(null);
@@ -45,33 +46,47 @@ export function Profile() {
       try {
         await dispatch(fetchUserData())
           .unwrap()
-          .then((userData) => {
-            if (userData.profile_photo) {
-              setProfileImage(userData.profile_photo);
-            }
-          })
           .catch((err) => {
             console.log("Error fetching user data:", err);
             toast.error("Failed to load user data");
           });
 
-        const response = await baseApi.get("public/get_voter_id.php", {
+        const profileResponse = await baseApi.get("function/fetch_photo.php", {
           withCredentials: true,
         });
 
-        console.log("Voter ID image response:", response.data);
-        if (response.data.success && response.data.voter_id_image) {
+        if (profileResponse.data.success && profileResponse.data.profile_photo) {
+          setProfileImagePreview(
+            `data:image/jpeg;base64,${profileResponse.data.profile_photo}`
+          );
+        } else {
+          setProfileImagePreview(null);
+          if (
+            profileResponse.data.message &&
+            profileResponse.data.message !== "User not found"
+          ) {
+            toast.error(
+              profileResponse.data.message || "Failed to load profile photo"
+            );
+          }
+        }
+
+        const voterIdResponse = await baseApi.get("public/get_voter_id.php", {
+          withCredentials: true,
+        });
+
+        if (voterIdResponse.data.success && voterIdResponse.data.voter_id_image) {
           setVoterIdImageData(
-            `data:image/jpeg;base64,${response.data.voter_id_image}`
+            `data:image/jpeg;base64,${voterIdResponse.data.voter_id_image}`
           );
         } else {
           setVoterIdImageData(null);
           if (
-            response.data.message &&
-            response.data.message !== "No voter ID image found"
+            voterIdResponse.data.message &&
+            voterIdResponse.data.message !== "No voter ID image found"
           ) {
             toast.error(
-              response.data.message || "Failed to load voter ID image"
+              voterIdResponse.data.message || "Failed to load voter ID image"
             );
           }
         }
@@ -97,10 +112,9 @@ export function Profile() {
     location,
     isLoading,
     isError,
-    profile_photo,
   } = useSelector((state) => state.user);
 
-  const handleProfileImageUpload = async (event) => {
+  const handleProfileImageSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
@@ -112,33 +126,73 @@ export function Profile() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("profilePhoto", file);
+      setProfileImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      console.log("Selected file:", file); // Debug: Check file object
+    }
+  };
 
-      setIsUploading(true);
-      try {
-        const response = await baseApi.post(
-          "public/profile_photo.php",
-          formData,
-          {
-            withCredentials: true,
-          }
-        );
-        const result = response.data;
-        if (result.success) {
-          setProfileImage(result.file_url);
-          toast.success("Profile picture updated successfully!");
-          dispatch(fetchUserData());
-        } else {
-          toast.error(result.message || "Failed to upload profile picture");
-        }
-      } catch (error) {
-        toast.error("Error uploading profile picture");
-        console.error("Upload error:", error.response?.data || error.message);
-      } finally {
-        setIsUploading(false);
-        setShowImageDialog(false);
+  const handleProfileImageSubmit = async () => {
+    if (!profileImageFile) {
+      toast.error("Please select a profile photo to upload");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("profile_photo", profileImageFile);
+
+      // Debug: Log FormData contents
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
       }
+
+      const response = await baseApi.post(
+        "public/profile_photo.php",
+        formData,
+        {
+          withCredentials: true,
+          // Do not manually set Content-Type; let browser handle it
+        }
+      );
+
+      const result = response.data;
+
+      console.log("Upload response:", result); // Debug: Check server response
+      if (result.success) {
+        toast.success("Profile photo uploaded successfully!");
+        setProfileImagePreview(null);
+        setProfileImageFile(null);
+
+        const profileResponse = await baseApi.get("public/profile_photo.php", {
+          withCredentials: true,
+        });
+
+        if (profileResponse.data.success && profileResponse.data.profile_photo) {
+          setProfileImagePreview(
+            `data:image/jpeg;base64,${profileResponse.data.profile_photo}`
+          );
+
+        } else {
+          setProfileImagePreview(null);
+        }
+
+        setShowImageDialog(false);
+      } else {
+        toast.error(result.message || "Failed to upload profile photo");
+      }
+    } catch (error) {
+      console.error("Upload error:", error.response?.data || error.message);
+      toast.error(
+        "Error uploading profile photo: " + (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -165,24 +219,15 @@ export function Profile() {
       const formData = new FormData();
       formData.append("voter_id_image", selectedVoterFile);
 
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
-
       const response = await baseApi.post(
         "public/upload_voter_id.php",
         formData,
         {
           withCredentials: true,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
         }
       );
 
       const result = response.data;
-      console.log("Upload response:", result.success);
-
       if (result.success) {
         toast.success(
           "Voter ID uploaded successfully. Pending admin approval."
@@ -191,12 +236,9 @@ export function Profile() {
         setSelectedVoterFile(null);
         setShowVoterIdDialog(false);
 
-        // Fetch updated voter ID
         const voterIdResponse = await baseApi.get("public/get_voter_id.php", {
           withCredentials: true,
         });
-
-        console.log("Fetch voter ID response:", voterIdResponse.data);
 
         if (
           voterIdResponse.data.success &&
@@ -207,10 +249,6 @@ export function Profile() {
           );
         } else {
           setVoterIdImageData(null);
-          toast.error(
-            voterIdResponse.data.message ||
-              "Failed to load voter ID image after upload"
-          );
         }
       } else {
         toast.error(result.message || "Failed to upload voter ID");
@@ -222,6 +260,14 @@ export function Profile() {
       );
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const removeProfileImagePreview = () => {
+    setProfileImagePreview(null);
+    setProfileImageFile(null);
+    if (profileFileInputRef.current) {
+      profileFileInputRef.current.value = "";
     }
   };
 
@@ -243,7 +289,7 @@ export function Profile() {
       );
       const result = response.data;
       if (result.success) {
-        setProfileImage(null);
+        setProfileImagePreview(null);
         toast.success("Profile picture removed");
         dispatch(fetchUserData());
       } else {
@@ -286,9 +332,9 @@ export function Profile() {
             <div className="absolute -bottom-16 left-8">
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden">
-                  {profileImage ? (
+                  {profileImagePreview ? (
                     <img
-                      src={profileImage}
+                      src={profileImagePreview}
                       alt="Profile"
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -384,30 +430,40 @@ export function Profile() {
             <DialogHeader>
               <DialogTitle>Update Profile Picture</DialogTitle>
               <DialogDescription>
-                Choose a new profile picture or remove the current one.
+                Upload a new profile picture or remove the current one.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              {profileImage && (
+              {profileImagePreview && (
                 <div className="relative w-32 h-32 mx-auto">
                   <img
-                    src={profileImage}
-                    alt="Current profile"
+                    src={profileImagePreview}
+                    alt="Profile Preview"
                     className="w-full h-full rounded-full object-cover"
                   />
-                  <button
-                    onClick={removeProfileImage}
-                    className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {profileImageFile && (
+                    <button
+                      onClick={removeProfileImagePreview}
+                      className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  {!profileImageFile && (
+                    <button
+                      onClick={removeProfileImage}
+                      className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               )}
               <input
                 type="file"
                 ref={profileFileInputRef}
-                onChange={handleProfileImageUpload}
-                accept="image/*"
+                onChange={handleProfileImageSelect}
+                accept="image/jpeg,image/png,image/jpg"
                 className="hidden"
               />
               <Button
@@ -415,13 +471,39 @@ export function Profile() {
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
                 disabled={isUploading}
               >
-                {isUploading ? "Uploading..." : "Update Picture"}
+                {isUploading ? "Selecting..." : "Select Profile Photo"}
               </Button>
+              {profileImageFile && (
+                <Button
+                  onClick={handleProfileImageSubmit}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
+                  disabled={isUploading}
+                >
+                  {isUploading ? "Uploading..." : "Upload Profile Photo"}
+                </Button>
+              )}
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setShowImageDialog(false)}
+                onClick={() => {
+                  setShowImageDialog(false);
+                  baseApi
+                    .get("public/get_profile_photo.php", { withCredentials: true })
+                    .then((response) => {
+                      if (response.data.success && response.data.profile_photo) {
+                        setProfileImagePreview(
+                          `data:image/jpeg;base64,${response.data.profile_photo}`
+                        );
+                      } else {
+                        setProfileImagePreview(null);
+                      }
+                    });
+                  setProfileImageFile(null);
+                  if (profileFileInputRef.current) {
+                    profileFileInputRef.current.value = "";
+                  }
+                }}
                 disabled={isUploading}
               >
                 Cancel
