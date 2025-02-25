@@ -1,5 +1,6 @@
 <?php
 session_start();
+session_regenerate_id(true); 
 
 include '../config/database.php';
 include '../config/handle_cors.php';

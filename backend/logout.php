@@ -20,6 +20,8 @@ if (isset($_SESSION)) {
     }
     session_unset();
     session_destroy();
+    session_start();
+    session_regenerate_id(true);
 
     echo json_encode([
         'success' => true,
