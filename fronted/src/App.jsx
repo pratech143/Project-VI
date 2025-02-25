@@ -31,7 +31,7 @@ function App() {
           <Route index element={<Home />} />
           <Route path="auth/login" element={<AuthPage type="login" />} />
           <Route path="auth/register" element={<AuthPage type="register" />} />
-          <Route path="votingpage" element={<VotingPage />} />
+        
           <Route path="results" element={<ElectionResults />} />
         
 
@@ -65,6 +65,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+            <Route path="votingpage" element={<ProtectedRoute allowedRoles={['admin']} restrictVoting={true}>
+                <VotingPage />
+              </ProtectedRoute>} />
           <Route
             path="addcandidates"
             element={
