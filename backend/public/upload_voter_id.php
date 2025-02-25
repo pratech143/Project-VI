@@ -5,15 +5,29 @@ include '../config/database.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
+
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['voter_id']) || !isset($_SESSION['email'])) {
     http_response_code(401); // Unauthorized
     echo json_encode(["success" => false, "message" => "You are not logged in."]);
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!empty($_FILES)) {
+        print_r($_FILES);
+    } else {
+        echo json_encode(["success" => false, "message" => "No files received."]);
+    }
+}
+
 $voter_id = $_SESSION['voter_id'];
 $email = $_SESSION['email'];
 $user_id = $_SESSION['user_id'];
+
+if (empty($_FILES)) {
+    die(json_encode(["success" => false, "message" => "No file data received.", "debug" => $_FILES]));
+}
+
 if (!isset($_FILES['voter_id_image'])) {
     error_log("No file uploaded in \$_FILES['voter_id_image']. Request headers: " . print_r(getallheaders(), true));
     echo json_encode(["success" => false, "message" => "No file data received."]);
