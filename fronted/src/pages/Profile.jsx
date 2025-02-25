@@ -179,7 +179,7 @@ export function Profile() {
         }
       );
 
-      const result = response.data;
+      const result = response.data.message;
       console.log("Upload response:", result);
 
       if (result.success) {
