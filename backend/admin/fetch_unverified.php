@@ -14,15 +14,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $stmt = $conn->prepare("
-            SELECT 
-                u.user_id, u.voter_id, u.email, u.is_verified, 
-                gv.name AS voter_name, gv.dob, gv.ward, 
-                l.location_name, l.district_name, l.location_type, u.voter_id_image
-            FROM users u
-            JOIN government_voters gv ON u.voter_id = gv.voter_id
-            JOIN locations l ON gv.location_id = l.location_id
-            WHERE u.is_verified = 0
-        ");
+        SELECT 
+            u.user_id, u.voter_id, u.email, u.is_verified, u.role,
+            gv.name AS voter_name, gv.dob, gv.ward, 
+            l.location_name, l.district_name, l.location_type, u.voter_id_image
+        FROM users u
+        JOIN government_voters gv ON u.voter_id = gv.voter_id
+        JOIN locations l ON gv.location_id = l.location_id
+        WHERE u.is_verified = 0 AND u.role = 0
+    ");
         $stmt->execute();
         $result = $stmt->get_result();
 
