@@ -2,9 +2,27 @@ import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUserData } from "@/Redux/slice/userSlice";
 import { motion } from "framer-motion";
-import { Camera, Mail, User, MapPin, Calendar, Users, Edit2, Upload, X, IdCard } from "lucide-react";
+import {
+  Camera,
+  Mail,
+  User,
+  MapPin,
+  Calendar,
+  Users,
+  Edit2,
+  Upload,
+  X,
+  IdCard,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
 import baseApi from "../api/baseApi";
 
@@ -42,16 +60,25 @@ export function Profile() {
 
         console.log("Voter ID image response:", response.data);
         if (response.data.success && response.data.voter_id_image) {
-          setVoterIdImageData(`data:image/jpeg;base64,${response.data.voter_id_image}`);
+          setVoterIdImageData(
+            `data:image/jpeg;base64,${response.data.voter_id_image}`
+          );
         } else {
           setVoterIdImageData(null);
-          if (response.data.message && response.data.message !== "No voter ID image found") {
-            toast.error(response.data.message || "Failed to load voter ID image");
+          if (
+            response.data.message &&
+            response.data.message !== "No voter ID image found"
+          ) {
+            toast.error(
+              response.data.message || "Failed to load voter ID image"
+            );
           }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Error loading data: " + (error.message || "Unknown error"));
+        toast.error(
+          "Error loading data: " + (error.message || "Unknown error")
+        );
       }
     };
 
@@ -89,9 +116,13 @@ export function Profile() {
 
       setIsUploading(true);
       try {
-        const response = await baseApi.post("public/profile_photo.php", formData, {
-          withCredentials: true,
-        });
+        const response = await baseApi.post(
+          "public/profile_photo.php",
+          formData,
+          {
+            withCredentials: true,
+          }
+        );
         const result = response.data;
         if (result.success) {
           setProfileImage(result.file_url);
@@ -128,51 +159,66 @@ export function Profile() {
       return;
     }
 
-    console.log("Selected file:", {
-      name: selectedVoterFile.name,
-      size: selectedVoterFile.size,
-      type: selectedVoterFile.type,
-    });
-
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("voter_id_image", selectedVoterFile);
 
-      const response = baseApi.post("public/upload_voter_id.php", { // Replace with your API URL
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      console.log(formData)
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
 
-      const result =  response;
+      const response = await baseApi.post(
+        "public/upload_voter_id.php",
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const result = response.data;
       console.log("Upload response:", result);
 
       if (result.success) {
-        toast.success("Voter ID uploaded successfully. Pending admin approval.");
+        toast.success(
+          "Voter ID uploaded successfully. Pending admin approval."
+        );
         setVoterIdImage(null);
         setSelectedVoterFile(null);
         setShowVoterIdDialog(false);
 
+        // Fetch updated voter ID
         const voterIdResponse = await baseApi.get("public/get_voter_id.php", {
           withCredentials: true,
         });
 
         console.log("Fetch voter ID response:", voterIdResponse.data);
 
-        if (voterIdResponse.data.success && voterIdResponse.data.voter_id_image) {
-          setVoterIdImageData(`data:image/jpeg;base64,${voterIdResponse.data.voter_id_image}`);
+        if (
+          voterIdResponse.data.success &&
+          voterIdResponse.data.voter_id_image
+        ) {
+          setVoterIdImageData(
+            `data:image/jpeg;base64,${voterIdResponse.data.voter_id_image}`
+          );
         } else {
           setVoterIdImageData(null);
-          toast.error(voterIdResponse.data.message || "Failed to load voter ID image after upload");
+          toast.error(
+            voterIdResponse.data.message ||
+              "Failed to load voter ID image after upload"
+          );
         }
       } else {
         toast.error(result.message || "Failed to upload voter ID");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Error uploading voter ID: " + (error.message || "Unknown error"));
+      toast.error(
+        "Error uploading voter ID: " + (error.message || "Unknown error")
+      );
     } finally {
       setIsUploading(false);
     }
@@ -294,7 +340,9 @@ export function Profile() {
                 )}
                 {voterIdImageData && (
                   <div className="mt-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Voter ID Image</h3>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Voter ID Image
+                    </h3>
                     <div className="w-48 h-48 rounded-lg overflow-hidden border border-gray-300">
                       <img
                         src={voterIdImageData}
