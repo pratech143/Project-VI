@@ -24,9 +24,11 @@ const ElectionResults = () => {
   );
 
   useEffect(() => {
-    dispatch(fetchElectionResults());
+    const electionResult=dispatch(fetchElectionResults());
+    console.log(electionResult)
   }, [dispatch]);
 
+  
   useEffect(() => {
     if (elections && elections.length > 0) {
       const validElection = elections.find(

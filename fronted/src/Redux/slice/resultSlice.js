@@ -5,10 +5,8 @@ export const fetchElectionResults = createAsyncThunk(
   'results/fetchElectionResults',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await baseApi.post('function/live_results.php', {
-        
-      });
-      
+      const response = await baseApi.post('function/live_results.php',   );
+      console.log(response.data)
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to fetch election results');
       }

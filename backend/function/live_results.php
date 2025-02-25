@@ -8,6 +8,7 @@ include '../config/encryption.php';
 
 header('Content-Type: application/json');
 
+// Uncomment the session validation check for security
 // if (!isset($_SESSION['user_id'])) {
 //     echo json_encode(["success" => false, "message" => "Unauthorized access. Please log in."]);
 //     exit;
@@ -18,11 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// $election_query = $conn->prepare("
-//     SELECT election_id, name, location_id, location_type, ward
-//     FROM elections 
-//     WHERE status = 'Ongoing'
-// ");
 $election_query = $conn->prepare("
     SELECT 
         e.election_id, 
@@ -39,6 +35,7 @@ $election_query = $conn->prepare("
     JOIN locations l ON e.location_id = l.location_id
     WHERE e.status = 'Ongoing'
 ");
+
 $election_query->execute();
 $election_result = $election_query->get_result();
 
@@ -54,8 +51,8 @@ while ($row = $election_result->fetch_assoc()) {
     $ongoing_elections[$row['election_id']] = [
         "election_id" => $row['election_id'],
         "election_name" => $row['election_name'],
-        "location" => $row['district_name'] . ', ' . $row['location_name'].',Ward:'.$row['ward'],
-        "date" => $row['start_date']." TO ".$row['end_date'],
+        "location" => $row['district_name'] . ', ' . $row['location_name'] . ', Ward: ' . $row['ward'],
+        "date" => $row['start_date'] . " TO " . $row['end_date'],
         "status" => $row['status'],
         "results" => []
     ];
@@ -63,7 +60,8 @@ while ($row = $election_result->fetch_assoc()) {
     $location_wards[$row['location_id']][] = $row['election_id'];
 }
 
-$query = "SELECT 
+$query = "
+SELECT 
     e.election_id, 
     e.location_id, 
     e.ward,
@@ -75,14 +73,11 @@ $query = "SELECT
     p.post_name, 
     COUNT(v.vote_id) AS vote_count
 FROM elections e
-JOIN candidates c 
-    ON c.location_id = e.location_id 
-    AND (c.ward = e.ward OR c.post_id IN (SELECT post_id FROM posts WHERE post_name IN ('Mayor', 'Deputy Mayor')))
+JOIN candidates c ON c.location_id = e.location_id 
+AND (c.ward = e.ward OR c.post_id IN (SELECT post_id FROM posts WHERE post_name IN ('Mayor', 'Deputy Mayor')))
 JOIN posts p ON c.post_id = p.post_id
 JOIN locations l ON e.location_id = l.location_id
-LEFT JOIN votes v 
-    ON c.candidate_id = v.candidate_id 
-    AND v.election_id = e.election_id
+LEFT JOIN votes v ON c.candidate_id = v.candidate_id AND v.election_id = e.election_id
 WHERE e.status = 'Ongoing'
 GROUP BY 
     e.election_id, 
@@ -93,7 +88,8 @@ GROUP BY
     p.post_name, 
     e.ward, 
     l.location_type
-ORDER BY e.election_id, c.post_id, vote_count DESC";
+ORDER BY e.election_id, c.post_id, vote_count DESC
+";
 
 $stmt = $conn->prepare($query);
 $stmt->execute();
@@ -107,18 +103,12 @@ while ($row = $result->fetch_assoc()) {
     $location_id = $row['location_id'];
     $candidate_id = $row['candidate_id'];
     $ward = $row['ward'];
-    
-    // Decrypt the encrypted_candidate_id using your decryptData function
+
+    // Decrypt if applicable
     $decrypted_candidate_id = decryptData($row['encrypted_candidate_id']);
 
-    // Debugging: log the decrypted candidate_id and candidate_id
-    error_log("Decrypted Candidate ID: " . $decrypted_candidate_id);
-    error_log("Original Candidate ID: " . $candidate_id);
-    
-    // Check if the decrypted ID matches the candidate ID
     if ($decrypted_candidate_id !== (string)$candidate_id) {
-        error_log("Mismatch! Decrypted ID doesn't match candidate ID.");
-        continue; // Skip this record if IDs do not match
+        continue;
     }
 
     if ($row['post_name'] === 'Mayor' || $row['post_name'] === 'Deputy Mayor') {
@@ -155,7 +145,7 @@ while ($row = $result->fetch_assoc()) {
 
 foreach ($mayor_deputy_results as $key => $data) {
     $location_id = $data['location_id'];
-    
+
     if (!isset($location_wards[$location_id])) {
         continue;
     }
