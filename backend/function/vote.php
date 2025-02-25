@@ -176,7 +176,12 @@ try {
         $candidate_result = $candidate_check->get_result();
 
         if ($candidate_result->num_rows === 0) {
-            $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Candidate not found for this post"];
+            $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Candidate not found"];
+
+            $log_stmt = $conn->prepare("INSERT INTO vote_logs (voter_id, election_id, post_id, candidate_id, encrypted_candidate_id, salt, vote_hash, status, message) VALUES (?, ?, ?, ?, '', '', '', 'FAILED', ?)");
+            $log_stmt->bind_param("siiss", $voter_id, $election_id, $post_id, $candidate_id, $failed_votes[count($failed_votes) - 1]['message']);
+            $log_stmt->execute();
+
             continue;
         }
 
@@ -190,19 +195,23 @@ try {
             throw new Exception("Encryption failed for candidate_id: " . $candidate_id);
         }
 
-        $insert_vote = $conn->prepare("
-            INSERT INTO votes (voter_id, election_id, post_id, encrypted_candidate_id, salt, vote_hash, signature) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ");
+        $insert_vote = $conn->prepare("INSERT INTO votes (voter_id, election_id, post_id, encrypted_candidate_id, salt, vote_hash, signature) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $insert_vote->bind_param("siissss", $voter_id, $election_id, $post_id, $encrypted_candidate_id, $random_salt, $vote_hash, $signature);
 
         if ($insert_vote->execute()) {
             $success_votes[] = $vote;
+
+            $log_stmt = $conn->prepare("INSERT INTO vote_logs (voter_id, election_id, post_id, candidate_id, encrypted_candidate_id, salt, vote_hash, status, message) VALUES (?, ?, ?, ?, ?, ?, ?, 'SUCCESS', 'Vote recorded successfully')");
+            $log_stmt->bind_param("siissss", $voter_id, $election_id, $post_id, $candidate_id, $encrypted_candidate_id, $random_salt, $vote_hash);
+            $log_stmt->execute();
         } else {
             $failed_votes[] = ["post_id" => $post_id, "candidate_id" => $candidate_id, "message" => "Failed to cast vote"];
+
+            $log_stmt = $conn->prepare("INSERT INTO vote_logs (voter_id, election_id, post_id, candidate_id, encrypted_candidate_id, salt, vote_hash, status, message) VALUES (?, ?, ?, ?, '', '', '', 'FAILED', ?)");
+            $log_stmt->bind_param("siiss", $voter_id, $election_id, $post_id, $candidate_id, $failed_votes[count($failed_votes) - 1]['message']);
+            $log_stmt->execute();
         }
     }
-
 
     if (count($success_votes) > 0) {
         $update_voted = $conn->prepare("UPDATE users SET is_voted = 1 WHERE voter_id = ?");
@@ -213,6 +222,11 @@ try {
     $conn->commit();
 } catch (Exception $e) {
     $conn->rollback();
+
+    $log_stmt = $conn->prepare("INSERT INTO vote_logs (voter_id, election_id, post_id, candidate_id, encrypted_candidate_id, salt, vote_hash, status, message) VALUES (?, ?, 0, '', '', '', '', 'INVALID_ATTEMPT', ?)");
+    $log_stmt->bind_param("sis", $voter_id, $election_id, $e->getMessage());
+    $log_stmt->execute();
+
     echo json_encode(["success" => false, "message" => "Voting failed. Error: " . $e->getMessage()]);
     exit;
 }
