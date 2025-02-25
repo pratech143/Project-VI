@@ -45,7 +45,7 @@ export function Profile() {
         });
 
         if (!response.ok) {
-          const text = await response.text(); // Get raw response text for debugging
+          const text = response.data(); // Get raw response text for debugging
           console.error("Non-OK response fetching voter ID image:", text);
           throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
         }
@@ -174,7 +174,7 @@ export function Profile() {
     setIsUploading(true);
     try {
       const arrayBuffer = await selectedVoterFile.arrayBuffer(); // Convert File to ArrayBuffer
-      const response = await fetch("public/upload_voter_id.php", {
+      const response = await baseApi.post("public/upload_voter_id.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/octet-stream", // Raw binary data
