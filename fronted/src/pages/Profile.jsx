@@ -2,18 +2,22 @@ import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUserData } from "@/Redux/slice/userSlice";
 import { motion } from "framer-motion";
-import { Camera, Mail, User, MapPin, Calendar, Users, Edit2, Upload, X } from "lucide-react";
+import { Camera, Mail, User, MapPin, Calendar, Users, Edit2, Upload, X, IdCard } from "lucide-react"; // Added IdCard icon
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
+import  baseApi  from "../api/baseApi"; // Assuming you have this setup as an Axios instance
 
 export function Profile() {
   const dispatch = useDispatch();
 
-  // State for local profile image (temporary until backend update)
-  const [profileImage, setProfileImage] = useState(null);
   const [showImageDialog, setShowImageDialog] = useState(false);
-  const fileInputRef = useRef(null);
+  const [showVoterIdDialog, setShowVoterIdDialog] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [profileImage, setProfileImage] = useState(null); // For profile picture
+  const [voterIdImage, setVoterIdImage] = useState(null); // For voter ID preview
+  const profileFileInputRef = useRef(null);
+  const voterIdFileInputRef = useRef(null);
 
   // Fetch user data on mount
   useEffect(() => {
@@ -30,7 +34,6 @@ export function Profile() {
       });
   }, [dispatch]);
 
-  // Get user data from Redux store
   const {
     name,
     user_id,
@@ -42,14 +45,13 @@ export function Profile() {
     location,
     isLoading,
     isError,
-    profile_photo, // Ensure this is fetched from the backend
+    profile_photo,
   } = useSelector((state) => state.user);
 
-  // Handle image upload to backend
-  const handleImageUpload = async (event) => {
+  // Handle profile picture upload
+  const handleProfileImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Validate file
       if (!file.type.startsWith("image/")) {
         toast.error("Please upload an image file");
         return;
@@ -62,57 +64,118 @@ export function Profile() {
       const formData = new FormData();
       formData.append("profilePhoto", file);
 
+      setIsUploading(true);
       try {
-        const response = await fetch("http://yourdomain.com/api/update_profile.php", { // Replace with actual URL
-          method: "POST",
-          body: formData,
-          credentials: "include", // Include cookies for session auth
-        });
-
-        const result = await response.json();
+        const response = await baseApi.post(
+          "public/update_profile.php",
+          formData,
+          { withCredentials: true }
+        );
+        const result = response.data;
         if (result.success) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setProfileImage(reader.result); // Update local state with Base64
-            toast.success("Profile picture updated successfully!");
-          };
-          reader.readAsDataURL(file);
-
-          // Re-fetch user data to update Redux state with new profile_photo
-          dispatch(fetchUserData());
+          setProfileImage(result.file_url); // Use the URL returned by the backend
+          toast.success("Profile picture updated successfully!");
+          dispatch(fetchUserData()); // Update Redux state
         } else {
           toast.error(result.message || "Failed to upload profile picture");
         }
       } catch (error) {
         toast.error("Error uploading profile picture");
         console.error("Upload error:", error);
+      } finally {
+        setIsUploading(false);
+        setShowImageDialog(false);
       }
     }
   };
 
-  // Remove profile image (reset to default or null in backend)
-  const removeProfileImage = async () => {
-    try {
-      const response = await fetch("http://yourdomain.com/api/update_profile.php", { // Replace with actual URL
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ action: "remove_profile_photo" }),
-      });
+  // Handle voter ID image upload (with preview)
+  const handleVoterIdUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file for voter ID");
+        return;
+      }
+      if (file.size > 12 * 1024 * 1024) { // 12MB limit (matching backend)
+        toast.error("File size must be less than 12MB");
+        return;
+      }
 
-      const result = await response.json();
+      // Create preview using FileReader
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVoterIdImage(reader.result); // Set preview as Base64
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Submit voter ID image to backend
+  const handleVoterIdSubmit = async () => {
+    if (!voterIdFileInputRef.current?.files[0]) {
+      toast.error("Please select a voter ID image to upload");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("voter_id_image", voterIdFileInputRef.current.files[0]);
+
+    setIsUploading(true);
+    try {
+      const response = await baseApi.post(
+        "public/profile.php",
+        formData,
+        { withCredentials: true }
+      );
+      const result = response.data;
       if (result.success) {
-        setProfileImage(null); // Clear local state
+        toast.success("Voter ID uploaded successfully. Pending admin approval.");
+        setVoterIdImage(null); // Clear preview after successful upload
+        setShowVoterIdDialog(false);
+        dispatch(fetchUserData()); // Optionally re-fetch user data if voter_id_image is included
+      } else {
+        toast.error(result.message || "Failed to upload voter ID");
+      }
+    } catch (error) {
+      toast.error("Error uploading voter ID");
+      console.error("Upload error:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Remove voter ID preview (before upload)
+  const removeVoterIdPreview = () => {
+    setVoterIdImage(null);
+    if (voterIdFileInputRef.current) {
+      voterIdFileInputRef.current.value = ""; // Clear file input
+    }
+  };
+
+  // Remove profile picture
+  const removeProfileImage = async () => {
+    setIsUploading(true);
+    try {
+      const response = await baseApi.post(
+        "public/add_photo.php",
+        { action: "remove_profile_photo" },
+        { withCredentials: true }
+      );
+      const result = response.data;
+      if (result.success) {
+        setProfileImage(null);
         toast.success("Profile picture removed");
-        dispatch(fetchUserData()); // Re-fetch to update Redux state
+        dispatch(fetchUserData()); // Update Redux state
       } else {
         toast.error(result.message || "Failed to remove profile picture");
       }
     } catch (error) {
       toast.error("Error removing profile picture");
       console.error("Remove error:", error);
+    } finally {
+      setIsUploading(false);
+      setShowImageDialog(false);
     }
   };
 
@@ -144,17 +207,17 @@ export function Profile() {
             <div className="absolute -bottom-16 left-8">
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden">
-                  {profileImage || (profile_photo && (
+                  {profile_photo ? (
                     <img
-                      src={profileImage || profile_photo}
+                      src={profile_photo}
                       alt="Profile"
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.src = ""; // Fallback if image fails to load
-                        setProfileImage(null);
+                        console.error("Failed to load profile image");
+                        e.target.src = "/default-avatar.png"; // Use a default image
                       }}
                     />
-                  )) || (
+                  ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="w-16 h-16 text-gray-400" />
                     </div>
@@ -191,11 +254,27 @@ export function Profile() {
                   <MapPin className="w-5 h-5" />
                   <span>{location}</span>
                 </div>
+                {voter_id && (
+                  <div className="flex items-center space-x-3 text-gray-600">
+                    <IdCard className="w-5 h-5" />
+                    <span>Voter ID: {voter_id}</span>
+                  </div>
+                )}
               </div>
+
+              {/* Button to upload voter ID */}
+              <Button
+                onClick={() => setShowVoterIdDialog(true)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white mt-4"
+                disabled={isUploading}
+              >
+                Upload Voter ID
+              </Button>
             </div>
           </div>
         </motion.div>
 
+        {/* Dialog for Profile Picture */}
         <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -205,10 +284,10 @@ export function Profile() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              {(profileImage || profile_photo) && (
+              {profile_photo && (
                 <div className="relative w-32 h-32 mx-auto">
                   <img
-                    src={profileImage || profile_photo}
+                    src={profile_photo}
                     alt="Current profile"
                     className="w-full h-full rounded-full object-cover"
                   />
@@ -222,24 +301,91 @@ export function Profile() {
               )}
               <input
                 type="file"
-                ref={fileInputRef}
-                onChange={handleImageUpload}
+                ref={profileFileInputRef}
+                onChange={handleProfileImageUpload}
                 accept="image/*"
                 className="hidden"
               />
               <Button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => profileFileInputRef.current?.click()}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                disabled={isLoading}
+                disabled={isUploading}
               >
-                {isLoading ? "Uploading..." : "Upload New Picture"}
+                {isUploading ? "Uploading..." : "Upload New Picture"}
               </Button>
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setShowImageDialog(false)}
-                disabled={isLoading}
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog for Voter ID Upload with Preview */}
+        <Dialog open={showVoterIdDialog} onOpenChange={setShowVoterIdDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Upload Voter ID</DialogTitle>
+              <DialogDescription>
+                Upload your voter ID image and preview it before submitting.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {voterIdImage && (
+                <div className="relative w-full max-w-xs mx-auto">
+                  <img
+                    src={voterIdImage}
+                    alt="Voter ID Preview"
+                    className="w-full h-auto rounded-lg object-contain border border-gray-300"
+                  />
+                  <button
+                    onClick={removeVoterIdPreview}
+                    className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              <input
+                type="file"
+                ref={voterIdFileInputRef}
+                onChange={handleVoterIdUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <Button
+                onClick={() => voterIdFileInputRef.current?.click()}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={isUploading}
+              >
+                {isUploading ? "Selecting..." : "Select Voter ID Image"}
+              </Button>
+              {voterIdImage && (
+                <Button
+                  onClick={handleVoterIdSubmit}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
+                  disabled={isUploading}
+                >
+                  {isUploading ? "Uploading..." : "Upload Voter ID"}
+                </Button>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowVoterIdDialog(false);
+                  setVoterIdImage(null); // Clear preview on cancel
+                  if (voterIdFileInputRef.current) {
+                    voterIdFileInputRef.current.value = ""; // Clear file input
+                  }
+                }}
+                disabled={isUploading}
               >
                 Cancel
               </Button>
