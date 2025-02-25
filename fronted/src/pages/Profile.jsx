@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
 import baseApi from "../api/baseApi";
+import { uploadVoterId } from "@/Redux/slice/voterSlice";
 
 export function Profile() {
   const dispatch = useDispatch();
@@ -139,7 +140,7 @@ export function Profile() {
       const formData = new FormData();
       formData.append("voter_id_image", selectedVoterFile);
 
-      const response = baseApi.post("public/upload_voter_id.php", { // Replace with your API URL
+      const response = baseApi.post("public/upload_voter_id.php", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -155,10 +156,7 @@ export function Profile() {
         setSelectedVoterFile(null);
         setShowVoterIdDialog(false);
 
-        const voterIdResponse = await baseApi.get("public/get_voter_id.php", {
-          withCredentials: true,
-        });
-
+        const voterIdResponse = await dispatch(uploadVoterId(formData))
         console.log("Fetch voter ID response:", voterIdResponse.data);
 
         if (voterIdResponse.data.success && voterIdResponse.data.voter_id_image) {

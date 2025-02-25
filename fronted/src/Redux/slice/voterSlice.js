@@ -32,6 +32,26 @@ export const handleVoterAction = createAsyncThunk(
   }
 );
 
+export const uploadVoterId = createAsyncThunk(
+  "voters/handleVoterAction",
+  async ({ formData}, { rejectWithValue }) => {
+    try {
+      const response = await baseApi.post("public/uload_voter_id.php",{voter_id_image:formData});
+
+      const result = await response.data;
+      console.log(data)
+
+      if (!result.success) {
+        return rejectWithValue(result.message);
+      }
+
+      return { voterId, action, message: result.message };
+    } catch (error) {
+      return rejectWithValue("Failed to connect to the server.");
+    }
+  }
+);
+
 // Mock initial voters (replace with API call later if needed)
 const initialVoters = [
   {
