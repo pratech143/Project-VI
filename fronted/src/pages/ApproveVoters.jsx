@@ -1,47 +1,72 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import baseApi from "@/api/baseApi";
 
+// Helper function to validate base64 strings
+const isValidBase64 = (str) => {
+  if (!str || typeof str !== "string") return false;
+  if (str.startsWith("{") || str.startsWith("[")) return false;
+  try {
+    const base64regex = /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/;
+    return base64regex.test(str);
+  } catch (e) {
+    return false;
+  }
+};
+
 export default function AdminVoterApproval() {
-  const [voters, setVoters] = useState([]); // List of pending voters
+  const [voters, setVoters] = useState([]);
   const [selectedVoter, setSelectedVoter] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
-
-  // API Base URL
-  
 
   // Fetch pending voters on component mount
   useEffect(() => {
     const fetchVoters = async () => {
       try {
-        const response = await baseApi.post("public/get_voter_id.php");
-        setVoters(response.data.voters || []);
+        const response = await baseApi.get("admin/fetch_unverified.php");
+        setVoters(response.data.pending_voters || []);
       } catch (error) {
         console.error("Error fetching voters:", error);
       }
     };
-
     fetchVoters();
   }, []);
+
+  // Debug voter selection
+  useEffect(() => {
+    if (selectedVoter) {
+      console.log("Selected Voter Data:", selectedVoter);
+      console.log("Voter ID Image:", selectedVoter.voter_id_image);
+      console.log("Is Valid Base64:", isValidBase64(selectedVoter.voter_id_image));
+    }
+  }, [selectedVoter]);
+
+  // Calculate age from DOB
+  const calculateAge = (dob) => {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   // Handle voter approval/rejection
   const handleVoterAction = async (voterId, action) => {
     setLoading(true);
     setMessage(null);
-
     try {
-      const response = await baseApi.post("admin/approve_voter.php",
+      const response = await baseApi.post(
+        "admin/approve_voter.php",
         { voter_id: voterId, action },
         { withCredentials: true }
       );
-
       setMessage({ text: response.data.message, type: "success" });
-
-      // Remove the voter from the list after approval/rejection
       setVoters((prevVoters) => prevVoters.filter((v) => v.voter_id !== voterId));
       setSelectedVoter(null);
     } catch (error) {
@@ -50,7 +75,6 @@ export default function AdminVoterApproval() {
         type: "error",
       });
     }
-
     setLoading(false);
   };
 
@@ -83,7 +107,7 @@ export default function AdminVoterApproval() {
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <span className="text-gray-800 font-medium">{voter.name}</span>
+                    <span className="text-gray-800 font-medium">{voter.voter_name}</span>
                   </div>
                 </motion.li>
               ))}
@@ -94,7 +118,6 @@ export default function AdminVoterApproval() {
 
       {/* Right Side: Voter Details & Actions */}
       <div className="w-2/3 p-8">
-        {/* Feedback Message */}
         {message && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -118,38 +141,48 @@ export default function AdminVoterApproval() {
               transition={{ duration: 0.3 }}
             >
               <Card className="flex gap-8 p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
-                {/* Left: Voter ID Image */}
+                {/* Voter ID Image */}
                 <motion.div
                   className="w-1/2"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <img
-                    src={selectedVoter.id_card_url}
-                    alt="Voter ID"
-                    className="w-full h-auto rounded-lg shadow-md border border-gray-200"
-                  />
+                  {selectedVoter.voter_id_image && isValidBase64(selectedVoter.voter_id_image) ? (
+                    <img
+                      src={`data:image/jpeg;base64,${selectedVoter.voter_id_image}`} // Adjust MIME type as needed
+                      alt="Voter ID"
+                      className="w-full h-auto rounded-lg shadow-md border border-gray-200"
+                      onError={(e) => {
+                        console.error("Image failed to load:", selectedVoter.voter_id_image);
+                        e.target.src = "/placeholder-id.png";
+                      }}
+                      onLoad={() => console.log("Image loaded successfully")}
+                    />
+                  ) : (
+                    <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
+                      No Valid ID Image Available
+                    </div>
+                  )}
                 </motion.div>
 
-                {/* Right: Voter Details */}
+                {/* Voter Details */}
                 <div className="w-1/2">
                   <CardHeader>
-                    <h2 className="text-2xl font-bold text-gray-800">{selectedVoter.name}</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">{selectedVoter.voter_name}</h2>
                     <p className="text-gray-500 text-sm">Voter ID: {selectedVoter.voter_id}</p>
                   </CardHeader>
-
                   <CardContent className="space-y-3">
                     <p className="text-gray-700">
-                      <strong className="text-gray-900">Age:</strong> {selectedVoter.age}
+                      <strong>Age:</strong> {calculateAge(selectedVoter.dob)}
                     </p>
                     <p className="text-gray-700">
-                      <strong className="text-gray-900">Email:</strong> {selectedVoter.email}
+                      <strong>Email:</strong> {selectedVoter.email}
                     </p>
                     <p className="text-gray-700">
-                      <strong className="text-gray-900">Address:</strong> {selectedVoter.address}
+                      <strong>Address:</strong> Ward {selectedVoter.ward}, {selectedVoter.location_name}, {selectedVoter.district_name}
                     </p>
                     <p className="text-gray-700">
-                      <strong className="text-gray-900">Status:</strong>
+                      <strong>Status:</strong>
                       <span className="text-yellow-600 font-medium"> Pending Approval</span>
                     </p>
 

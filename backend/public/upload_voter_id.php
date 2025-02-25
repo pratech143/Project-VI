@@ -1,14 +1,10 @@
 <?php
-// upload_voter_id_image.php
 session_start();
 
 include '../config/database.php';
 include '../config/handle_cors.php';
 
 header('Content-Type: application/json');
-
-
-// Authentication check
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['voter_id']) || !isset($_SESSION['email'])) {
     http_response_code(401); // Unauthorized
     echo json_encode(["success" => false, "message" => "You are not logged in."]);
@@ -18,43 +14,23 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['voter_id']) || !isset($_SE
 $voter_id = $_SESSION['voter_id'];
 $email = $_SESSION['email'];
 $user_id = $_SESSION['user_id'];
-
-// Read raw file data from php://input
-$rawData = file_get_contents('php://input');
-if (empty($rawData)) {
-    error_log("No raw data received in php://input. Request headers: " . print_r(getallheaders(), true));
-    http_response_code(400); // Bad Request
-    echo json_encode(["success" => false, "message" => "No file data received or an error occurred."]);
+if (!isset($_FILES['voter_id_image'])) {
+    error_log("No file uploaded in \$_FILES['voter_id_image']. Request headers: " . print_r(getallheaders(), true));
+    echo json_encode(["success" => false, "message" => "No file data received."]);
     exit;
 }
 
-// Log raw data length for debugging (optional, careful with large files)
-error_log("Raw data length: " . strlen($rawData));
+$file = $_FILES['voter_id_image'];
+$imageData = file_get_contents($file['tmp_name']);
 
-// Simulate temporary file handling (since $_FILES isn't used)
-$tempDir = sys_get_temp_dir();
-if (!is_writable($tempDir)) {
-    error_log("Temporary directory $tempDir is not writable");
+if ($imageData === false) {
+    error_log("Failed to read uploaded file: " . $file['tmp_name']);
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Server error: Temporary directory not writable."]);
+    echo json_encode(["success" => false, "message" => "Server error: Failed to read uploaded file."]);
     exit;
 }
 
-$tempFile = tempnam($tempDir, 'voterid_');
-if ($tempFile === false) {
-    error_log("Failed to create temporary file in $tempDir");
-    http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Server error: Failed to create temporary file."]);
-    exit;
-}
-
-if (file_put_contents($tempFile, $rawData) === false) {
-    error_log("Failed to write raw data to temporary file: $tempFile");
-    if (file_exists($tempFile)) unlink($tempFile);
-    http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Server error: Failed to store temporary file."]);
-    exit;
-}
+error_log("Uploaded file size: " . strlen($imageData));
 
 try {
     // Check if user is already verified
@@ -65,30 +41,24 @@ try {
     $user = $result->fetch_assoc();
 
     if (!$user) {
-        unlink($tempFile); // Clean up temporary file
         http_response_code(404);
         echo json_encode(["success" => false, "message" => "User not found."]);
         exit;
     }
 
     if ($user['is_verified'] == 1) {
-        unlink($tempFile); // Clean up temporary file
         http_response_code(400);
         echo json_encode(["success" => false, "message" => "You are already verified. No need to upload again."]);
         exit;
     }
 
-    // Read and store data as BLOB from temporary file (no type or size checks)
-    $data = file_get_contents($tempFile);
-
     // Update database with BLOB data
     $stmt = $conn->prepare("UPDATE users SET voter_id_image = ?, is_verified = 0 WHERE voter_id = ?");
-    $stmt->bind_param("bs", $data, $voter_id);
-    $stmt->send_long_data(0, $data);
+    $stmt->bind_param("bs", $imageData, $voter_id);
+    $stmt->send_long_data(0, $imageData); // For large BLOBs
     $stmt->execute();
 
     if ($stmt->affected_rows <= 0) {
-        unlink($tempFile); // Clean up temporary file
         http_response_code(500);
         echo json_encode(["success" => false, "message" => "Failed to update database. Please try again."]);
         exit;
@@ -101,12 +71,9 @@ try {
     ]);
 
 } catch (Exception $e) {
-    // Clean up temporary file in case of error
-    if (file_exists($tempFile)) {
-        unlink($tempFile);
-    }
-    // Log error for debugging (without exposing to client)
+    // Log error for debugging
     error_log("Error uploading voter ID for voter_id $voter_id: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "An error occurred while uploading the voter ID. Please try again."]);
 }
+?>
