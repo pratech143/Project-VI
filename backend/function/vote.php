@@ -71,7 +71,7 @@ if (empty($voter_id) || empty($election_id) || !is_array($votes) || count($votes
     exit;
 }
 
-$voter_check = $conn->prepare("SELECT email, is_voted FROM users WHERE voter_id = ?");
+$voter_check = $conn->prepare("SELECT email, is_voted, is_verified FROM users WHERE voter_id = ?");
 $voter_check->bind_param("s", $voter_id);
 $voter_check->execute();
 $voter_result = $voter_check->get_result();
@@ -83,6 +83,12 @@ if ($voter_result->num_rows === 0) {
 
 $voter_data = $voter_result->fetch_assoc();
 $voter_email = $voter_data['email'];
+$voter_verified = $voter_data['is_verified'];
+
+if($voter_verified !== 1){
+    echo json_encode(["success" => false, "message" => "You are not verified voter."]);
+    exit;
+}
 
 if ($voter_data['is_voted'] == 1) {
     echo json_encode(["success" => false, "message" => "You have already voted."]);
