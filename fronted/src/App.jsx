@@ -16,8 +16,7 @@ import ProtectedRoute from './components/ProtectedRoutes'; // Import ProtectedRo
 import { Profile } from './pages/Profile';
 import AddCandidates from './components/AddCandidates';
 import AdminVoterApproval from './pages/ApproveVoters';
-import { useEffect } from 'react';
-
+import { useEffect,useState } from 'react';
 function App() {
 
   

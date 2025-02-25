@@ -24,11 +24,10 @@ const ElectionResults = () => {
   );
 
   useEffect(() => {
-    const electionResult=dispatch(fetchElectionResults());
-    console.log(electionResult)
+    const electionResult = dispatch(fetchElectionResults());
+    console.log(electionResult);
   }, [dispatch]);
 
-  
   useEffect(() => {
     if (elections && elections.length > 0) {
       const validElection = elections.find(
@@ -43,7 +42,6 @@ const ElectionResults = () => {
         const firstResult = Array.isArray(validElection.results)
           ? validElection.results[0]
           : Object.values(validElection.results)[0];
-
         setSelectedResult(firstResult);
       } else {
         setSelectedElection(null);
@@ -62,18 +60,35 @@ const ElectionResults = () => {
   }, [selectedElection]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="text-center py-8">Loading...</div>;
   }
 
   if (isError) {
-    toast.error(errorMessage);
-    return <div>Error: {errorMessage}</div>;
+    
+    return <div className="text-center text-9xl font-bold py-8 text-blue-500">No votes Casted yet</div>;
+  }
+
+  // Case 1: No elections or no results available
+  if (!elections || elections.length === 0 || elections.every(election => !election.results || (Array.isArray(election.results) && election.results.length === 0) || (typeof election.results === "object" && Object.keys(election.results).length === 0))) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Election Results</h2>
+        <p className="text-gray-500">No result available</p>
+      </div>
+    );
   }
 
   if (!selectedElection || !selectedResult) {
-    
-    return <div>No election or result data available</div>;
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Election Results</h2>
+        <p className="text-gray-500">No result available</p>
+      </div>
+    );
   }
+
+  // Check if no votes have been cast for the selected result
+  const noVotesCast = selectedResult.candidates.every(candidate => candidate.vote_count === 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -119,40 +134,46 @@ const ElectionResults = () => {
                 <Award className="h-5 w-5 mr-2 text-yellow-500" />
                 Candidates
               </h3>
-              <button
-                className="text-indigo-600 flex items-center mb-4"
-                onClick={() => setShowAllCandidates(!showAllCandidates)}
-              >
-                {showAllCandidates ? "Show Top 2" : "Show All"}
-                {showAllCandidates ? (
-                  <ChevronUp className="h-4 w-4 ml-1" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 ml-1" />
-                )}
-              </button>
-              <div className="grid gap-4 md:grid-cols-2">
-                {(showAllCandidates
-                  ? selectedResult.candidates
-                  : selectedResult.candidates.slice(0, 2)
-                ).map((candidate) => (
-                  <div
-                    key={candidate.candidate_id}
-                    className="bg-white rounded-lg shadow-md p-6 border-l-4"
-                    style={{ borderLeftColor: candidate.color }}
+              {noVotesCast ? (
+                <p className="text-gray-500 text-center">No votes cast yet</p>
+              ) : (
+                <>
+                  <button
+                    className="text-indigo-600 flex items-center mb-4"
+                    onClick={() => setShowAllCandidates(!showAllCandidates)}
                   >
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {candidate.candidate_name}
-                    </h3>
-                    <p className="text-sm text-gray-500">{candidate.party_name}</p>
-                    <div className="mt-2">
-                      <span className="text-2xl font-bold text-gray-900">
-                        {candidate.vote_count}
-                      </span>
-                      <span className="text-sm text-gray-500 ml-1">votes</span>
-                    </div>
+                    {showAllCandidates ? "Show Top 2" : "Show All"}
+                    {showAllCandidates ? (
+                      <ChevronUp className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 ml-1" />
+                    )}
+                  </button>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {(showAllCandidates
+                      ? selectedResult.candidates
+                      : selectedResult.candidates.slice(0, 2)
+                    ).map((candidate) => (
+                      <div
+                        key={candidate.candidate_id}
+                        className="bg-white rounded-lg shadow-md p-6 border-l-4"
+                        style={{ borderLeftColor: candidate.color }}
+                      >
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {candidate.candidate_name}
+                        </h3>
+                        <p className="text-sm text-gray-500">{candidate.party_name}</p>
+                        <div className="mt-2">
+                          <span className="text-2xl font-bold text-gray-900">
+                            {candidate.vote_count}
+                          </span>
+                          <span className="text-sm text-gray-500 ml-1">votes</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>

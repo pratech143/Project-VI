@@ -31,7 +31,7 @@ export function Elections() {
   const [expandedPosts, setExpandedPosts] = useState({}); // Tracking expanded post per election
   const [role, setRole] = useState('');
   const [isVoted, setIsVoted] = useState(0);
-
+  const [verified, setVerified] = useState(null)
   const fetchSession = async () => {
     try {
       const response = await baseApi.get("/config/get_user_session.php");
@@ -80,9 +80,18 @@ export function Elections() {
       console.log(error);
     }
   };
+  const verificationConfirmation = async () => {
+    try {
+      const response = await baseApi.get("function/is_verified.php");
+      setVerified(response.data.is_verified);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
     votingConfirmation();
+    verificationConfirmation();
   }, []);
 
   return (
@@ -208,12 +217,12 @@ export function Elections() {
                     {role !== 'admin' && (
                       <Button
                         className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center"
-                        disabled={election.status.toLowerCase() !== "ongoing" || isVoted === 1}
+                        disabled={election.status.toLowerCase() !== "ongoing" || isVoted === 1 || verified === 0 || verified === -1}
                       >
                         <Link to="/votingpage">
                           {" "}
-                          <Vote className="w-4 h-4 mr-2" /> {isVoted === 1 ? "You have already voted" : "Cast Votes"}
-                        </Link>
+                          <Vote className="w-4 h-4 mr-2" />
+                          {isVoted === 1 ? "You have already voted" : (verified === 0 || verified === -1) ? "You are not verified to vote" : "Cast Votes"}</Link>
                       </Button>
                     )}
 
@@ -231,8 +240,8 @@ export function Elections() {
                       {election.status.toLowerCase() === "ongoing"
                         ? "Voting is open"
                         : election.status.toLowerCase() === "upcoming"
-                        ? "Coming soon"
-                        : "Voting ended"}
+                          ? "Coming soon"
+                          : "Voting ended"}
                     </span>
                   </CardFooter>
                 </Card>
