@@ -181,7 +181,7 @@ export function Profile() {
       );
 
       const result = response.data;
-      console.log("Upload response:", result);
+      console.log("Upload response:", result.success);
 
       if (result.success) {
         toast.success(
