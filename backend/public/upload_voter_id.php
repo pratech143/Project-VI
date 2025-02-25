@@ -4,7 +4,6 @@ session_start();
 
 include '../config/database.php';
 include '../config/handle_cors.php';
-include '../config/mail_config.php'; // For potential email notifications
 
 header('Content-Type: application/json');
 
@@ -95,17 +94,6 @@ try {
         exit;
     }
 
-    // Notify admin via email about the new upload
-    sendEmail(
-        "prtkchapagain@gmail.com", // Replace with actual admin email
-        "New Voter ID Upload Pending",
-        "A new voter ID has been uploaded by voter ID $voter_id (Email: $email). Please review it at the admin panel."
-    );
-
-    // Clean up temporary file
-    unlink($tempFile);
-
-    // Return success response
     http_response_code(200);
     echo json_encode([
         "success" => true,
