@@ -571,27 +571,7 @@ export function CreateElection() {
                             </div>
                           </div>
 
-                          <div className="space-y-3">
-                            <Label
-                              htmlFor="admin-password"
-                              className="text-sm font-medium text-gray-700"
-                            >
-                              Admin Password
-                            </Label>
-                            <div className="relative">
-                              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                              <Input
-                                id="admin-password"
-                                type="password"
-                                value={adminPassword}
-                                onChange={(e) =>
-                                  setAdminPassword(e.target.value)
-                                }
-                                className="pl-10 h-11"
-                                placeholder="Enter admin password"
-                              />
-                            </div>
-                          </div>
+                          
 
                           <DialogFooter className="flex justify-between !mt-8">
                             <Button
@@ -605,7 +585,7 @@ export function CreateElection() {
                             <Button
                               type="button"
                               onClick={handleConfirmCreate}
-                              disabled={isLoading || !adminPassword}
+                              disabled={isLoading }
                               className="bg-indigo-600 hover:bg-indigo-700 transition-all duration-300"
                             >
                               {isLoading ? "Creating..." : "Confirm & Create"}

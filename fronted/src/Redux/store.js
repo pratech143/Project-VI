@@ -8,6 +8,8 @@ import addCandidateReducer from"./slice/addCandidateSlice"
 import resetReducer from "./slice/resetSlice"
 import profileReducer from"./slice/ProfileSlice"
 import voterReducer from "./slice/voterSlice"
+import removeReducer from "./slice/removeVoterSlice"
+import contactReducer from "./slice/contactAdminSlice"
 export const store=configureStore({
     reducer:{
         auth:authReducer,
@@ -18,7 +20,8 @@ export const store=configureStore({
         addCandidate:addCandidateReducer,
         reset:resetReducer,
         profile:profileReducer,
-        voters:voterReducer
-
+        voters:voterReducer,
+        removeVoter:removeReducer,
+        contactAdmin:contactReducer,
     }
 });
