@@ -1,6 +1,5 @@
 <?php
 session_start();
-session_regenerate_id(true); 
 
 include '../config/database.php';
 include '../config/handle_cors.php';
@@ -30,6 +29,11 @@ if (empty($email) || empty($password)) {
 }
 
 $user_check = $conn->prepare("SELECT user_id, email, password, role, voter_id, is_email_verified FROM users WHERE email = ?");
+if ($user_check === false) {
+    echo json_encode(["success" => false, "message" => "Query preparation failed: " . $conn->error]);
+    exit;
+}
+
 $user_check->bind_param("s", $email);
 $user_check->execute();
 $user_result = $user_check->get_result();

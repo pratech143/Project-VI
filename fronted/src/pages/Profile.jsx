@@ -55,7 +55,10 @@ export function Profile() {
           withCredentials: true,
         });
 
-        if (profileResponse.data.success && profileResponse.data.profile_photo) {
+        if (
+          profileResponse.data.success &&
+          profileResponse.data.profile_photo
+        ) {
           setProfileImagePreview(
             `data:image/jpeg;base64,${profileResponse.data.profile_photo}`
           );
@@ -75,7 +78,10 @@ export function Profile() {
           withCredentials: true,
         });
 
-        if (voterIdResponse.data.success && voterIdResponse.data.voter_id_image) {
+        if (
+          voterIdResponse.data.success &&
+          voterIdResponse.data.voter_id_image
+        ) {
           setVoterIdImageData(
             `data:image/jpeg;base64,${voterIdResponse.data.voter_id_image}`
           );
@@ -173,11 +179,13 @@ export function Profile() {
           withCredentials: true,
         });
 
-        if (profileResponse.data.success && profileResponse.data.profile_photo) {
+        if (
+          profileResponse.data.success &&
+          profileResponse.data.profile_photo
+        ) {
           setProfileImagePreview(
             `data:image/jpeg;base64,${profileResponse.data.profile_photo}`
           );
-
         } else {
           setProfileImagePreview(null);
         }
@@ -189,7 +197,8 @@ export function Profile() {
     } catch (error) {
       console.error("Upload error:", error.response?.data || error.message);
       toast.error(
-        "Error uploading profile photo: " + (error.response?.data?.message || error.message)
+        "Error uploading profile photo: " +
+          (error.response?.data?.message || error.message)
       );
     } finally {
       setIsUploading(false);
@@ -214,21 +223,26 @@ export function Profile() {
       return;
     }
 
+    console.log("selectedVoterFile:", selectedVoterFile); // Debug file
+
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("voter_id_image", selectedVoterFile);
 
+      // Debug FormData
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
       const response = await baseApi.post(
         "public/upload_voter_id.php",
         formData,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
 
-      const result = response.data;
-      if (result.success) {
+      console.log("Server response:", response.data);
+      if (response.data.success) {
         toast.success(
           "Voter ID uploaded successfully. Pending admin approval."
         );
@@ -239,7 +253,6 @@ export function Profile() {
         const voterIdResponse = await baseApi.get("public/get_voter_id.php", {
           withCredentials: true,
         });
-
         if (
           voterIdResponse.data.success &&
           voterIdResponse.data.voter_id_image
@@ -251,12 +264,13 @@ export function Profile() {
           setVoterIdImageData(null);
         }
       } else {
-        toast.error(result.message || "Failed to upload voter ID");
+        toast.error(response.data.message || "Failed to upload voter ID");
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Upload error:", error.response?.data || error);
       toast.error(
-        "Error uploading voter ID: " + (error.message || "Unknown error")
+        "Error uploading voter ID: " +
+          (error.response?.data?.message || error.message)
       );
     } finally {
       setIsUploading(false);
@@ -489,9 +503,14 @@ export function Profile() {
                 onClick={() => {
                   setShowImageDialog(false);
                   baseApi
-                    .get("public/get_profile_photo.php", { withCredentials: true })
+                    .get("public/get_profile_photo.php", {
+                      withCredentials: true,
+                    })
                     .then((response) => {
-                      if (response.data.success && response.data.profile_photo) {
+                      if (
+                        response.data.success &&
+                        response.data.profile_photo
+                      ) {
                         setProfileImagePreview(
                           `data:image/jpeg;base64,${response.data.profile_photo}`
                         );
